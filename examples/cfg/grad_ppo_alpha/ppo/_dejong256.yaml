@@ -1,6 +1,6 @@
 params:  
   diff_env:
-    name: DejongEnv2048
+    name: DejongEnv256
     stochastic_env: False
     episode_length: 1
     MM_caching_frequency: 1
@@ -36,11 +36,11 @@ params:
         name: None
 
   load_checkpoint: False
-  load_path: nn/df_dejong2048.pth
+  load_path: nn/df_dejong256.pth
 
   config:
     device: cpu
-    name: df_dejong2048
+    name: df_dejong256
     env_name: dflex
     multi_gpu: False
     ppo: True
