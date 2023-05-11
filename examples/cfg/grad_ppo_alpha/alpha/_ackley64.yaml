@@ -1,6 +1,6 @@
 params:  
   diff_env:
-    name: DejongEnv64
+    name: AckleyEnv64
     stochastic_env: False
     episode_length: 1
     MM_caching_frequency: 1
@@ -52,7 +52,7 @@ params:
     normalize_advantage: True
     gamma: 0.99
     tau: 0.95
-    learning_rate: 1e-3
+    learning_rate: 1e-2
     lr_schedule: constant
     lr_threshold: 0.008
     kl_threshold: 0.008
@@ -86,10 +86,10 @@ params:
     gi_params:
       
       num_step: 1
-      algorithm: 'grad-ppo-alpha'
+      algorithm: 'dynamic-alpha-only'
 
       max_alpha: 1e-0
-      desired_alpha: 1e-3
+      desired_alpha: 1e-1
       update_factor: 1.1
       update_interval: 0.20
       dynamic_alpha_scheduler: dynamic4
