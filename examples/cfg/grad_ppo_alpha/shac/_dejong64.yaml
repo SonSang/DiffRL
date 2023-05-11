@@ -65,8 +65,8 @@ params:
     truncate_grads: True
     e_clip: 0.2
     steps_num: 1
-    num_actors: 64
-    minibatch_size: 64
+    num_actors: 4
+    minibatch_size: 4
     mini_epochs: 5
     critic_coef: 4
     clip_value: True
@@ -88,11 +88,11 @@ params:
       num_step: 1
       algorithm: 'shac-only'
 
-      max_alpha: 1e-1
-      desired_alpha: 1e-2
-      update_factor: 1.05
-      update_interval: 0.05
-      dynamic_alpha_scheduler: dynamic1
+      max_alpha: 1e-0
+      desired_alpha: 1e-5
+      update_factor: 1.1
+      update_interval: 0.50
+      dynamic_alpha_scheduler: dynamic4
       max_dist_rp_lr: 0.5
       max_est_hessian_det_std: 0.05
 
@@ -112,12 +112,12 @@ params:
           units: [32, 32]
           activation: elu
 
-      lr_schedule: linear # [constant, linear]
+      lr_schedule: constant # [constant, linear]
       
       # LEARNING RATE FOR RP-GRADIENT BASED ACTOR UPDATE;
       actor_learning_rate_shac: 1e-2
       
-      actor_learning_rate_alpha: 1e-2
+      actor_learning_rate_alpha: 1e-3
       actor_iterations_alpha: 16
 
       # LEARNING RATE FOR CRITIC UPDATE;

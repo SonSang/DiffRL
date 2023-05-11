@@ -7,3 +7,5 @@ externals/traffic/build/
 externals/traffic/dist/
 *.avi
 *.gif
+.DS_Store
+*.egg-info/

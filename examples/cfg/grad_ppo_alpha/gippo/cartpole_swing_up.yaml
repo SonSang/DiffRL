@@ -94,10 +94,10 @@ params:
       algorithm: 'grad-ppo-alpha'
 
 
-      max_alpha: 1e-1
-      desired_alpha: 1e-2
-      update_factor: 1.1
-      update_interval: 0.20
+      max_alpha: 1e0 # 4e-2
+      desired_alpha: 5e-1
+      update_factor: 1.02
+      update_interval: 0.40
       dynamic_alpha_scheduler: dynamic4
       max_dist_rp_lr: 0.5
       max_est_hessian_det_std: 0.05
@@ -121,7 +121,7 @@ params:
       # LEARNING RATE FOR RP-GRADIENT BASED ACTOR UPDATE;
       actor_learning_rate_shac: 1e-2 # 4e-2
       
-      actor_learning_rate_alpha: 1e-3
+      actor_learning_rate_alpha: 1e-2
       actor_iterations_alpha: 16
 
       # LEARNING RATE FOR CRITIC UPDATE;

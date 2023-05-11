@@ -102,7 +102,7 @@ class GradA2CAgent(A2CAgent):
         self.gi_lr_schedule = config['gi_params']['lr_schedule']
         
         self.gi_max_alpha = float(config['gi_params']['max_alpha'])
-        self.gi_min_alpha = None # 1e-15
+        self.gi_min_alpha = None # 1e-5
         self.gi_desired_alpha = float(config['gi_params']['desired_alpha'])
         self.gi_curr_alpha = self.gi_desired_alpha
         self.gi_update_factor = float(config['gi_params']['update_factor'])
@@ -148,6 +148,8 @@ class GradA2CAgent(A2CAgent):
 
         # episode length;
         self.episode_max_length = self.vec_env.env.episode_length
+        
+        self.est_curr_performace_rms = RunningMeanStd(shape=(1,), device=self.ppo_device)
 
 
     def init_tensors(self):
@@ -627,11 +629,12 @@ class GradA2CAgent(A2CAgent):
                         actor_loss_0 = actor_loss.detach().cpu().item()
                     elif iter == self.actor_iterations - 1:
                         actor_loss_1 = actor_loss.detach().cpu().item()
-                    
-                actor_loss_0 = np.clip(actor_loss_0, 1e-5, None)
-                actor_loss_ratio = actor_loss_1 / actor_loss_0
+                        
+                log_actor_loss_0 = np.log(actor_loss_0)
+                log_actor_loss_1 = np.log(actor_loss_1)
+                actor_loss_ratio = np.exp(log_actor_loss_1 - log_actor_loss_0)
                 
-                if actor_loss_ratio > 1.:
+                if actor_loss_0 < actor_loss_1:
                     
                     with torch.no_grad():
                         
@@ -651,6 +654,8 @@ class GradA2CAgent(A2CAgent):
                     break
                 
             self.writer.add_scalar("info_alpha/actor_loss_ratio", actor_loss_ratio, self.epoch_num)
+                
+            did_converge = actor_loss_0 > actor_loss_1
                 
             with torch.no_grad():
             
@@ -773,10 +778,10 @@ class GradA2CAgent(A2CAgent):
                     
                 elif self.gi_dynamic_alpha_scheduler == 'dynamic4':
                     
-                    if actor_loss_ratio > 1.:
+                    if not did_converge:
                         # alpha does not change;
                         next_actor_lr = curr_actor_lr / self.gi_update_factor
-                        self.actor_iterations = int((self.actor_iterations * self.gi_update_factor) // 1)
+                        # self.actor_iterations = int((self.actor_iterations * self.gi_update_factor) // 1)
                     else:
                         # actor_lr does not change;
                         
@@ -1021,17 +1026,23 @@ class GradA2CAgent(A2CAgent):
                 
                 est_curr_performance = torch.sum(unnormalized_advantages * pac_ratio) - torch.sum(unnormalized_advantages)
                 # est_curr_performance = torch.sum(advantages * pac_ratio) - torch.sum(advantages)
+                
+                n_est_curr_performance = self.est_curr_performace_rms.normalize(est_curr_performance)
+                self.est_curr_performace_rms.update(est_curr_performance.unsqueeze(0))
+                
                 self.writer.add_scalar("info_alpha/est_curr_performance", est_curr_performance, self.epoch_num)
+                self.writer.add_scalar("info_alpha/est_curr_performance_n", n_est_curr_performance, self.epoch_num)
                 
                 # if current policy is too far from old policy or is worse than old policy,
                 # decrease alpha;
                 
                 if out_of_range_pac_ratio > self.gi_max_dist_rp_lr or \
-                    est_curr_performance < 0.:
+                    (est_curr_performance < 0 and n_est_curr_performance < -1.):
                     
                     self.next_alpha = self.gi_curr_alpha / self.gi_update_factor
                     if self.gi_dynamic_alpha_scheduler in ['dynamic0', 'dynamic2']:
                         self.next_actor_lr = self.actor_lr / self.gi_update_factor
+                    self.next_alpha = np.clip(self.next_alpha, self.gi_min_alpha, self.gi_max_alpha)
                 
                 dataset_dict['mu'] = n_mus
                 dataset_dict['sigma'] = n_sigmas

@@ -22,6 +22,7 @@ from envs._ackley_64 import AckleyEnv64
 from envs._dejong_64 import DejongEnv64
 from envs._ackley_256 import AckleyEnv256
 from envs._dejong_256 import DejongEnv256
+from envs._rosenbrock64 import RosenbrockEnv64
 
 from envs.traffic.pace_car.env import TrafficPaceCarEnv
 from envs.traffic.roundabout.env import TrafficRoundaboutEnv

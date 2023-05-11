@@ -52,7 +52,7 @@ params:
     normalize_advantage: True
     gamma: 0.99
     tau: 0.95
-    learning_rate: 1e-3
+    learning_rate: 1e-2
     lr_schedule: constant
     lr_threshold: 0.008
     kl_threshold: 0.008
@@ -65,8 +65,8 @@ params:
     truncate_grads: True
     e_clip: 0.2
     steps_num: 1
-    num_actors: 64
-    minibatch_size: 64
+    num_actors: 4
+    minibatch_size: 4
     mini_epochs: 5
     critic_coef: 4
     clip_value: True
@@ -89,7 +89,7 @@ params:
       algorithm: 'grad-ppo-alpha'
 
       max_alpha: 1e-0
-      desired_alpha: 1e-3
+      desired_alpha: 1e-5
       update_factor: 1.1
       update_interval: 0.20
       dynamic_alpha_scheduler: dynamic4

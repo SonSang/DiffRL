@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 class RosenbrockEnv(DFlexEnv):
 
-    def __init__(self, render=False, device='cuda:0', num_envs=1024, seed=0, episode_length=1, no_grad=True, stochastic_init=False, MM_caching_frequency = 1, early_termination = False, dim=16000):
+    def __init__(self, render=False, device='cuda:0', num_envs=1024, seed=0, episode_length=1, no_grad=True, stochastic_init=False, MM_caching_frequency = 1, early_termination = False, dim=2):
 
         assert dim >= 2, "At least 2 dim"
 

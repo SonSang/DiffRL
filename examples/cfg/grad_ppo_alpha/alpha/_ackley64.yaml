@@ -36,11 +36,11 @@ params:
         name: None
 
   load_checkpoint: False
-  load_path: nn/df_dejong64.pth
+  load_path: nn/df_ackley64.pth
 
   config:
     device: cpu
-    name: df_dejong64
+    name: df_ackley64
     env_name: dflex
     multi_gpu: False
     ppo: True

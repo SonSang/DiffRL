@@ -89,7 +89,7 @@ params:
       algorithm: 'grad-ppo-alpha'
 
       max_alpha: 1e-0
-      desired_alpha: 1e-3
+      desired_alpha: 1e-5
       update_factor: 1.1
       update_interval: 0.20
       dynamic_alpha_scheduler: dynamic4

@@ -112,10 +112,10 @@ params:
           units: [32, 32]
           activation: elu
 
-      lr_schedule: constant # [constant, linear]
+      lr_schedule: linear # [constant, linear]
       
       # LEARNING RATE FOR RP-GRADIENT BASED ACTOR UPDATE;
-      actor_learning_rate_shac: 1e-4
+      actor_learning_rate_shac: 1e-5 # so small that SHAC does not affect... 
       
       actor_learning_rate_alpha: 1e-3
       actor_iterations_alpha: 16
