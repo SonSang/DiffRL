@@ -1,6 +1,6 @@
 params:  
   diff_env:
-    name: DejongEnv64
+    name: AckleyEnv64
     stochastic_env: False
     episode_length: 1
     MM_caching_frequency: 1
@@ -36,11 +36,11 @@ params:
         name: None
 
   load_checkpoint: False
-  load_path: nn/df_dejong64.pth
+  load_path: nn/df_ackley64.pth
 
   config:
     device: cpu
-    name: df_dejong64
+    name: df_ackley64
     env_name: dflex
     multi_gpu: False
     ppo: True
@@ -88,8 +88,8 @@ params:
       num_step: 1
       algorithm: 'dynamic-alpha-only'
 
-      max_alpha: 1e-0
-      desired_alpha: 1e-1
+      max_alpha: 1e-1
+      desired_alpha: 1e-2
       # update_factor: 1.1
       update_interval: 0.40
       # dynamic_alpha_scheduler: dynamic4

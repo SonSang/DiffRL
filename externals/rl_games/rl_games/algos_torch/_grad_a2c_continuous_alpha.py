@@ -82,6 +82,7 @@ class GradA2CAgent(A2CAgent):
 
             self.actor_lr = float(config['gi_params']["actor_learning_rate_alpha"])
             self.actor_iterations = config['gi_params']['actor_iterations_alpha']
+            self.first_actor_lr = float(config['gi_params']['first_actor_learning_rate_alpha'])
             
         else:
             
@@ -107,23 +108,6 @@ class GradA2CAgent(A2CAgent):
         self.gi_curr_alpha = self.gi_desired_alpha
         # self.gi_update_factor = float(config['gi_params']['update_factor'])
         self.gi_update_interval = float(config['gi_params']['update_interval'])
-        # self.gi_dynamic_alpha_scheduler = config["gi_params"]["dynamic_alpha_scheduler"]
-        # alpha and actor_lr scheduler for dynamic-alpha policy
-        # static_lr: actor lr does not change, only alpha changes
-        # dynamic0: actor lr changes same as alpha (alpha decreases when actor loss does not decrease)
-        # dynamic1: actor lr only decreases when actor loss does not decrease (alpha does not decrease when actor loss does not decrease)
-        # dynamic2: est_hessian_det should not exceed 1. + dynamic0
-        # dynamic3: est_hessian_det should not exceed 1. + dynamic1
-        # assert self.gi_dynamic_alpha_scheduler in ["static_lr", "dynamic0", "dynamic1", "dynamic2", "dynamic3", "dynamic4"]
-
-        # self.gi_max_dist_rp_lr = float(config['gi_params']['max_dist_rp_lr'])
-        
-        # self.next_alpha = self.gi_curr_alpha
-        # self.next_actor_lr = self.actor_lr
-        
-        # self.min_hessian_det_list = []
-        # self.min_hessian_det_list_size = 16
-        # self.max_hessian_det_std = float(config["gi_params"]["max_est_hessian_det_std"])
         
         # initialize ppo optimizer;
 
@@ -133,7 +117,7 @@ class GradA2CAgent(A2CAgent):
         # if it is True, we adjust ppo_last_lr adaptively until PPO loss decreases for sure;
         self.stable_ppo = config["gi_params"]["stable_ppo"]
         
-        self.max_alpha_iter = 4
+        self.max_alpha_iter = 16
         self.alpha_multiplier = 1.5
         self.max_optimization_iter = 8
         self.optimizer_lr_multiplier = 1.5
@@ -588,6 +572,8 @@ class GradA2CAgent(A2CAgent):
                                                                 grad_start,
                                                                 False)
             
+            action_dim = grad_actions[0].shape[1]
+            
             with torch.no_grad():
             
                 t_obses = swap_and_flatten01(torch.stack(grad_obses, dim=0))
@@ -596,215 +582,99 @@ class GradA2CAgent(A2CAgent):
                 t_actions = swap_and_flatten01(torch.stack(grad_actions, dim=0))
                 t_adv_gradient = swap_and_flatten01(t_adv_gradient)
                 
-                # start by estimating det(df / de), and see if it is near-zero;
-                # if it is, we use very small alpha;
+                # start by estimating det(df / de) and use it to restrict alpha;
+                # this is because computation gets unstable as it approaches 0;
                 old_mu, old_std = self.experience_buffer.tensor_dict['mus'], \
                                     self.experience_buffer.tensor_dict['sigmas']
                                     
                 old_mu, old_std = swap_and_flatten01(old_mu), swap_and_flatten01(old_std)
                     
-                preupdate_action_eps_jac = self.action_eps_jacobian(old_mu, old_std, t_rp_eps)
-                preupdate_action_eps_jacdet = torch.logdet(preupdate_action_eps_jac) / t_actions.shape[1]
-                preupdate_action_eps_jacdet = torch.exp(preupdate_action_eps_jacdet)
+                initial_action_eps_jac = self.action_eps_jacobian(old_mu, old_std, t_rp_eps)
+                initial_action_eps_logjacdet = torch.logdet(initial_action_eps_jac)
+                initial_action_eps_logjacdet_gm = initial_action_eps_logjacdet / action_dim     # geometric mean;
+                initial_action_eps_jacdet_gm = torch.exp(initial_action_eps_logjacdet_gm)
+                mean_initial_action_eps_jacdet_gm = torch.mean(initial_action_eps_jacdet_gm)
+                self.writer.add_scalar("info_alpha/mean_initial_action_eps_jacdet", mean_initial_action_eps_jacdet_gm, self.epoch_num)
                 
-                self.writer.add_scalar("info_alpha/preupdate_action_eps_jacdet", torch.min(preupdate_action_eps_jacdet), self.epoch_num)
+                # set upper bound of alpha through linear interpolation;
+                # if [mean_initial_action_eps_jacdet_gm] > 1, use our original max alpha;
+                # elif < 1e-4, do not let alpha to grow over our original min alpha;
                 
-                # near_zero_eps_det = torch.min(preupdate_action_eps_jacdet) < 1e-4
+                max_mean_initial_action_eps_jacdet_gm = 1e-0
+                min_mean_iniital_action_eps_jacdet_gm = 1e-4
+                interp = torch.clamp(mean_initial_action_eps_jacdet_gm - min_mean_iniital_action_eps_jacdet_gm, 
+                                     min=0., 
+                                     max=max_mean_initial_action_eps_jacdet_gm - min_mean_iniital_action_eps_jacdet_gm)
+                interp = interp / (max_mean_initial_action_eps_jacdet_gm - min_mean_iniital_action_eps_jacdet_gm)
+                curr_max_alpha = interp * (self.gi_max_alpha - self.gi_min_alpha) + \
+                                    self.gi_min_alpha
                 
             # start with very small alpha for stable update;
-            t_alpha_converge = True
             t_alpha = self.gi_min_alpha
-            curr_actor_lr = 1e-4 # self.actor_lr
-            t_est_hessian_logdet = None
-            
-            for param in self.actor_optimizer.param_groups:
-                param['lr'] = curr_actor_lr
             
             if True:
                 
                 with torch.no_grad():
                     
                     t_alpha_actions = t_actions + t_alpha * t_adv_gradient
+                    
+                t_alpha_converge, last_lr = self.update_actor_with_alpha_actions(t_obses,
+                                                                        t_rp_eps,
+                                                                        t_alpha_actions,
+                                                                        self.first_actor_lr)
                 
-                # backup actor to prevent policy degradation;
-                self.save_backup_actor()
-            
-                for iter2 in range(self.max_optimization_iter):
-                
-                    actor_loss_0 = None
-                    actor_loss_1 = None
+                if not t_alpha_converge:
                     
-                    for iter3 in range(self.actor_iterations):
+                    self.first_actor_lr = last_lr
                     
-                        _, mu, std, _ = self.actor.forward_with_dist(t_obses)
-                    
-                        distr = GradNormal(mu, std)
-                        rpeps_actions = distr.eps_to_action(t_rp_eps)
-                        
-                        actor_loss = (rpeps_actions - t_alpha_actions) * (rpeps_actions - t_alpha_actions)
-                        actor_loss = torch.sum(actor_loss, dim=-1)
-                        actor_loss = actor_loss.mean()
-                    
-                        # update actor;
-                        self.actor_optimizer.zero_grad()
-                        actor_loss.backward()
-                        grad_norm_before_clip = tu.grad_norm(self.actor.parameters())
-                        if self.truncate_grads:
-                            torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.grad_norm)    
-                        grad_norm_after_clip = tu.grad_norm(self.actor.parameters()) 
-
-                        self.actor_optimizer.step()
-                        
-                        if iter3 == 0:
-                            actor_loss_0 = actor_loss.detach().cpu().item()
-                        elif iter3 == self.actor_iterations - 1:
-                            actor_loss_1 = actor_loss.detach().cpu().item()
-                    
-                    actor_loss_0 = np.clip(actor_loss_0, 1e-5, None)
-                    actor_loss_ratio = actor_loss_1 / actor_loss_0
-                
-                    if actor_loss_ratio > 1.:
-                        
-                        with torch.no_grad():
-                            
-                            # if optimization did not work well;
-                            self.load_backup_actor()
-                            
-                            curr_actor_lr /= self.optimizer_lr_multiplier
-                            
-                            for param in self.actor_optimizer.param_groups:
-                                param['lr'] = curr_actor_lr
-                                
-                    else:
-                        
-                        curr_actor_lr = self.actor_lr
-                        
-                        for param in self.actor_optimizer.param_groups:
-                            param['lr'] = curr_actor_lr
-                            
-                        break
-                
-                if actor_loss_ratio > 1.:
-                        
-                    self.load_backup_actor()
-                    self.actor_lr = curr_actor_lr
-                    t_alpha_converge = False
-                    
-                else:
-                    
-                    with torch.no_grad():
-            
-                        # estimate determinant of (I + alpha * advantage Hessian)
-                        # and use it to adjust alpha;
-                        
-                        _, new_mu, new_std, _ = self.actor.forward_with_dist(t_obses)
-                        
-                    preupdate_action_eps_jac = self.action_eps_jacobian(old_mu, old_std, t_rp_eps)
-                    postupdate_action_eps_jac = self.action_eps_jacobian(new_mu, new_std, t_rp_eps)
-                    
-                    preupdate_action_eps_jacdet = torch.logdet(preupdate_action_eps_jac)
-                    postupdate_action_eps_jacdet = torch.logdet(postupdate_action_eps_jac)
-                    
-                    # geometric mean;
-                    est_hessian_logdet = (postupdate_action_eps_jacdet - preupdate_action_eps_jacdet) / t_actions.shape[1]
-                    t_est_hessian_logdet = est_hessian_logdet / t_alpha
-                    
-                    est_hessian_det = torch.exp(est_hessian_logdet)
-                        
-                    mean_est_hessian_det = torch.mean(est_hessian_det)
-                    min_est_hessian_det = torch.min(est_hessian_det)
-                    max_est_hessian_det = torch.max(est_hessian_det)
-            
-            
-            prev_success_alpha = None
-            prev_fail_alpha = None
-            curr_alpha = self.gi_curr_alpha
-            curr_actor_lr = self.actor_lr
-            for param in self.actor_optimizer.param_groups:
-                param['lr'] = curr_actor_lr
-            
-            success_mean_est_hessian_det = None
-            success_max_est_hessian_det = None
-            success_min_est_hessian_det = None
+                with torch.no_grad():
         
-            # if near_zero_eps_det:
+                    # estimate determinant of (I + alpha * advantage Hessian)
+                    # and use it to adjust alpha;
+                    
+                    _, new_mu, new_std, _ = self.actor.forward_with_dist(t_obses)
+                    
+                postupdate_action_eps_jac = self.action_eps_jacobian(new_mu, new_std, t_rp_eps)
+                postupdate_action_eps_logjacdet = torch.logdet(postupdate_action_eps_jac)
                 
-            #     success_mean_est_hessian_det = mean_est_hessian_det
-            #     success_max_est_hessian_det = max_est_hessian_det
-            #     success_min_est_hessian_det = min_est_hessian_det
-                        
+                # geometric mean;
+                est_hessian_logjacdet_gm = (postupdate_action_eps_logjacdet - initial_action_eps_logjacdet) / action_dim
+                safe_guard = est_hessian_logjacdet_gm / (t_alpha * 1.)
+                # safe_guard_1 = est_hessian_logjacdet_gm / (t_alpha * 1.)
+                
+                est_hessian_jacdet_gm = torch.exp(est_hessian_logjacdet_gm)
+                    
+                mean_est_hessian_det = torch.mean(est_hessian_jacdet_gm)
+                min_est_hessian_det = torch.min(est_hessian_jacdet_gm)
+                max_est_hessian_det = torch.max(est_hessian_jacdet_gm)
+            
+            prev_success_alpha = t_alpha
+            prev_fail_alpha = None
+            curr_alpha = t_alpha # self.gi_curr_alpha
+        
             if t_alpha_converge:
+                
                 
                 # adjust alpha iteratively so that det(I + aH) fits desired interval;
                 for iter1 in range(self.max_alpha_iter):
                     
+                    # backup actor;
+                    with torch.no_grad():
+                        tmp_backup_actor = copy.deepcopy(self.actor)
+                    
                     with torch.no_grad():
                         
                         t_alpha_actions = t_actions + curr_alpha * t_adv_gradient
+                        
+                    did_converge, last_lr = self.update_actor_with_alpha_actions(t_obses,
+                                                                        t_rp_eps,
+                                                                        t_alpha_actions,
+                                                                        self.actor_lr)
                     
-                    # backup actor to prevent policy degradation;
-                    self.save_backup_actor()
-                
-                    for iter2 in range(self.max_optimization_iter):
-                    
-                        actor_loss_0 = None
-                        actor_loss_1 = None
-                        
-                        for iter3 in range(self.actor_iterations):
-                        
-                            _, mu, std, _ = self.actor.forward_with_dist(t_obses)
-                        
-                            distr = GradNormal(mu, std)
-                            rpeps_actions = distr.eps_to_action(t_rp_eps)
-                            
-                            actor_loss = (rpeps_actions - t_alpha_actions) * (rpeps_actions - t_alpha_actions)
-                            actor_loss = torch.sum(actor_loss, dim=-1)
-                            actor_loss = actor_loss.mean()
-                        
-                            # update actor;
-                            self.actor_optimizer.zero_grad()
-                            actor_loss.backward()
-                            grad_norm_before_clip = tu.grad_norm(self.actor.parameters())
-                            if self.truncate_grads:
-                                torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.grad_norm)    
-                            grad_norm_after_clip = tu.grad_norm(self.actor.parameters()) 
-
-                            self.actor_optimizer.step()
-                            
-                            if iter3 == 0:
-                                actor_loss_0 = actor_loss.detach().cpu().item()
-                            elif iter3 == self.actor_iterations - 1:
-                                actor_loss_1 = actor_loss.detach().cpu().item()
-                        
-                        actor_loss_0 = np.clip(actor_loss_0, 1e-5, None)
-                        actor_loss_ratio = actor_loss_1 / actor_loss_0
-                    
-                        if actor_loss_ratio > 1.:
-                            
-                            with torch.no_grad():
-                                
-                                # if optimization did not work well;
-                                self.load_backup_actor()
-                                
-                                curr_actor_lr /= self.optimizer_lr_multiplier
-                                
-                                for param in self.actor_optimizer.param_groups:
-                                    param['lr'] = curr_actor_lr
-                                    
-                        else:
-                            
-                            curr_actor_lr = self.actor_lr
-                            
-                            for param in self.actor_optimizer.param_groups:
-                                param['lr'] = curr_actor_lr
-                                
-                            break
-                        
                     # if loss still does not decrease...
-                    if actor_loss_ratio > 1.:
+                    if not did_converge:
                         
-                        self.load_backup_actor()
-                        self.actor_lr = curr_actor_lr
+                        self.actor_lr = last_lr
                         break
                         
                     else:
@@ -816,32 +686,44 @@ class GradA2CAgent(A2CAgent):
                             
                             _, new_mu, new_std, _ = self.actor.forward_with_dist(t_obses)
                             
-                        preupdate_action_eps_jac = self.action_eps_jacobian(old_mu, old_std, t_rp_eps)
                         postupdate_action_eps_jac = self.action_eps_jacobian(new_mu, new_std, t_rp_eps)
-                        
-                        preupdate_action_eps_jacdet = torch.logdet(preupdate_action_eps_jac)
-                        postupdate_action_eps_jacdet = torch.logdet(postupdate_action_eps_jac)
+                        postupdate_action_eps_logjacdet = torch.logdet(postupdate_action_eps_jac)
                         
                         # geometric mean;
-                        est_hessian_logdet = (postupdate_action_eps_jacdet - preupdate_action_eps_jacdet) / t_actions.shape[1]
-                        
+                        est_hessian_logjacdet_gm = (postupdate_action_eps_logjacdet - initial_action_eps_logjacdet) / action_dim
+                    
                         # check condition;
-                        safe_update = torch.all(est_hessian_logdet < (curr_alpha / 2.) * t_est_hessian_logdet)
+                        safe_update = True # torch.mean(est_hessian_logjacdet_gm) < curr_alpha * torch.mean(safe_guard) # torch.all(est_hessian_logjacdet_gm < curr_alpha * safe_guard)
+                        # safe_update = (torch.mean(est_hessian_logjacdet_gm) < curr_alpha * torch.mean(safe_guard_0)) or \
+                        #                 (torch.mean(est_hessian_logjacdet_gm) < curr_alpha * torch.mean(safe_guard_1))
+                                
+                        est_hessian_jacdet_gm = torch.exp(est_hessian_logjacdet_gm)
                         
-                        est_hessian_det = torch.exp(est_hessian_logdet)
-                        
-                        mean_est_hessian_det = torch.mean(est_hessian_det)
-                        min_est_hessian_det = torch.min(est_hessian_det)
-                        max_est_hessian_det = torch.max(est_hessian_det)
+                        n_mean_est_hessian_det = torch.mean(est_hessian_jacdet_gm)
+                        n_min_est_hessian_det = torch.min(est_hessian_jacdet_gm)
+                        n_max_est_hessian_det = torch.max(est_hessian_jacdet_gm)
                         
                         if self.gi_algorithm in ['dynamic-alpha-only', 'grad-ppo-alpha']:
                     
                             min_safe_interval = (1. - self.gi_update_interval)
                             max_safe_interval = (1. + self.gi_update_interval)
                             
-                            curr_success = (min_est_hessian_det > min_safe_interval) and \
-                                            (max_est_hessian_det < max_safe_interval) and \
-                                            safe_update
+                            # if not safe_update:
+                                
+                            #     if iter1 == 0:
+                                    
+                            #         next_alpha = t_alpha * self.alpha_multiplier
+                                
+                            #     else:
+                                    
+                            #         next_alpha = curr_alpha * self.alpha_multiplier
+                            #         n_safe_guard = est_hessian_logjacdet_gm / (curr_alpha * 1.)
+                            #         safe_guard = (safe_guard + n_safe_guard) * 0.5
+                                    
+                            # else:
+                            
+                            curr_success = (n_min_est_hessian_det > min_safe_interval) and \
+                                            (n_max_est_hessian_det < max_safe_interval) and safe_update
                             
                             if not curr_success:
                                     
@@ -863,10 +745,15 @@ class GradA2CAgent(A2CAgent):
                                     
                                 else:
                                     
-                                    # reduce alpha;
-                                    next_alpha = curr_alpha / self.alpha_multiplier
+                                    raise NotImplementedError()
                                 
-                                self.load_backup_actor()
+                                # rollback to original actor;
+                                
+                                with torch.no_grad():
+                                        
+                                    for param, param_targ in zip(tmp_backup_actor.parameters(), self.actor.parameters()):
+                                        param_targ.data.mul_(0.)
+                                        param_targ.data.add_(param.data)
                                 
                                 if prev_fail_alpha is not None:
                                     prev_fail_alpha = np.min([curr_alpha, prev_fail_alpha])
@@ -887,7 +774,6 @@ class GradA2CAgent(A2CAgent):
                                         # theoretically, undesirable case,
                                         # so just stick with current successful alpha;
                                         curr_alpha = curr_alpha
-                                        
                                         break
                                     
                                 else:
@@ -900,11 +786,11 @@ class GradA2CAgent(A2CAgent):
                                 else:
                                     prev_success_alpha = curr_alpha
                                     
-                                success_mean_est_hessian_det = mean_est_hessian_det
-                                success_max_est_hessian_det = max_est_hessian_det
-                                success_min_est_hessian_det = min_est_hessian_det
-                            
-                            next_alpha = np.clip(next_alpha, self.gi_min_alpha, self.gi_max_alpha)
+                                mean_est_hessian_det = n_mean_est_hessian_det
+                                min_est_hessian_det = n_min_est_hessian_det
+                                max_est_hessian_det = n_max_est_hessian_det
+                                    
+                            next_alpha = np.clip(next_alpha, self.gi_min_alpha, curr_max_alpha)
                             
                             if curr_alpha == next_alpha:
                                 
@@ -915,154 +801,23 @@ class GradA2CAgent(A2CAgent):
                         else:
                             
                             break
-                        
-            if success_mean_est_hessian_det is not None:
-                    
-                self.writer.add_scalar("info_alpha/mean_est_hessian_det", success_mean_est_hessian_det, self.epoch_num)
-                self.writer.add_scalar("info_alpha/min_est_hessian_det", success_min_est_hessian_det, self.epoch_num)
-                self.writer.add_scalar("info_alpha/max_est_hessian_det", success_max_est_hessian_det, self.epoch_num)
-            
-            elif t_alpha_converge:
-                
+               
+            if t_alpha_converge:         
                 self.writer.add_scalar("info_alpha/mean_est_hessian_det", mean_est_hessian_det, self.epoch_num)
                 self.writer.add_scalar("info_alpha/min_est_hessian_det", min_est_hessian_det, self.epoch_num)
                 self.writer.add_scalar("info_alpha/max_est_hessian_det", max_est_hessian_det, self.epoch_num)
-            
-            else:
                 
+                self.gi_curr_alpha = curr_alpha
+                self.writer.add_scalar("info_alpha/alpha", prev_success_alpha, self.epoch_num)
+            else:
                 self.writer.add_scalar("info_alpha/mean_est_hessian_det", 1., self.epoch_num)
                 self.writer.add_scalar("info_alpha/min_est_hessian_det", 1., self.epoch_num)
                 self.writer.add_scalar("info_alpha/max_est_hessian_det", 1., self.epoch_num)
+                
+                self.gi_curr_alpha = curr_alpha
+                self.writer.add_scalar("info_alpha/alpha", 0., self.epoch_num)
             
-            
-            self.gi_curr_alpha = curr_alpha
-            self.writer.add_scalar("info_alpha/alpha", curr_alpha, self.epoch_num)
                 
-                
-                # self.writer.add_scalar("info_alpha/actor_loss_ratio", actor_loss_ratio, self.epoch_num)
-                
-            
-            
-            # if len(self.min_hessian_det_list) == self.min_hessian_det_list_size:
-            #     self.min_hessian_det_list.pop(0)
-            # self.min_hessian_det_list.append(min_est_hessian_det)
-            # min_hessian_std = np.std(self.min_hessian_det_list)
-            
-            # self.writer.add_scalar("info_alpha/mean_est_hessian_det", mean_est_hessian_det, self.epoch_num)
-            # self.writer.add_scalar("info_alpha/min_est_hessian_det", min_est_hessian_det, self.epoch_num)
-            # self.writer.add_scalar("info_alpha/max_est_hessian_det", max_est_hessian_det, self.epoch_num)
-            # self.writer.add_scalar("info_alpha/est_hessaian_det_std", min_hessian_std, self.epoch_num)
-            
-            # if self.gi_algorithm in ['dynamic-alpha-only', 'grad-ppo-alpha']:
-                
-            #     curr_alpha = self.gi_curr_alpha
-            #     curr_actor_lr = self.actor_lr
-                
-            #     next_alpha = curr_alpha
-            #     next_actor_lr = curr_actor_lr
-                
-            #     min_safe_interval = (1. - self.gi_update_interval)
-            #     max_safe_interval = (1. + self.gi_update_interval)
-                
-            #     if self.gi_dynamic_alpha_scheduler == 'static_lr':
-                    
-            #         if actor_loss_ratio > 1.:
-            #             next_alpha = curr_alpha / self.gi_update_factor
-            #         else:
-            #             if mean_est_hessian_det < min_safe_interval or \
-            #                 mean_est_hessian_det > max_safe_interval:
-            #                 # if estimated determinant of (I + alpha * advantage Hessian)
-            #                 # is too small or large, which means unstable update, reduce alpha;
-            #                 next_alpha = curr_alpha / self.gi_update_factor
-            #             else:
-            #                 next_alpha = curr_alpha * self.gi_update_factor
-                            
-            #     elif self.gi_dynamic_alpha_scheduler == 'dynamic0':
-                    
-            #         if actor_loss_ratio > 1.:
-            #             next_alpha = curr_alpha / self.gi_update_factor
-            #         else:
-            #             if mean_est_hessian_det < min_safe_interval or \
-            #                 mean_est_hessian_det > max_safe_interval:
-            #                 next_alpha = curr_alpha / self.gi_update_factor
-            #             else:
-            #                 next_alpha = curr_alpha * self.gi_update_factor
-                            
-            #         next_alpha = np.clip(next_alpha, self.gi_min_alpha, self.gi_max_alpha)
-            #         ratio = next_alpha / np.clip(curr_alpha, 1e-5, None)
-            #         next_actor_lr = curr_actor_lr * ratio
-                    
-            #     elif self.gi_dynamic_alpha_scheduler == 'dynamic1':
-                    
-            #         if actor_loss_ratio > 1.:
-            #             # alpha does not change;
-            #             next_actor_lr = curr_actor_lr / self.gi_update_factor
-            #         else:
-            #             # actor_lr does not change;
-            #             if mean_est_hessian_det < min_safe_interval or \
-            #                 mean_est_hessian_det > max_safe_interval:
-            #                 next_alpha = curr_alpha / self.gi_update_factor
-            #             else:
-            #                 next_alpha = curr_alpha * self.gi_update_factor
-                    
-            #         next_alpha = np.clip(next_alpha, self.gi_min_alpha, self.gi_max_alpha)
-                    
-            #     elif self.gi_dynamic_alpha_scheduler == 'dynamic2':
-                    
-            #         if actor_loss_ratio > 1.:
-            #             next_alpha = curr_alpha / self.gi_update_factor
-            #         else:
-            #             if mean_est_hessian_det < min_safe_interval or \
-            #                 mean_est_hessian_det > 1.:
-            #                 next_alpha = curr_alpha / self.gi_update_factor
-            #             else:
-            #                 next_alpha = curr_alpha * self.gi_update_factor
-                            
-            #         next_alpha = np.clip(next_alpha, self.gi_min_alpha, self.gi_max_alpha)
-            #         ratio = next_alpha / np.clip(curr_alpha, 1e-5, None)
-            #         next_actor_lr = curr_actor_lr * ratio
-                    
-            #     elif self.gi_dynamic_alpha_scheduler == 'dynamic3':
-                    
-            #         if actor_loss_ratio > 1.:
-            #             # alpha does not change;
-            #             next_actor_lr = curr_actor_lr / self.gi_update_factor
-            #         else:
-            #             # actor_lr does not change;
-            #             if mean_est_hessian_det < min_safe_interval or \
-            #                 mean_est_hessian_det > 1.:
-            #                 next_alpha = curr_alpha / self.gi_update_factor
-            #             else:
-            #                 next_alpha = curr_alpha * self.gi_update_factor
-                    
-            #         next_alpha = np.clip(next_alpha, self.gi_min_alpha, self.gi_max_alpha)
-                    
-            #     elif self.gi_dynamic_alpha_scheduler == 'dynamic4':
-                    
-            #         if actor_loss_ratio > 1.:
-            #             # alpha does not change;
-            #             next_actor_lr = curr_actor_lr / self.gi_update_factor
-            #             self.actor_iterations = int((self.actor_iterations * self.gi_update_factor) // 1)
-            #         else:
-            #             # actor_lr does not change;
-                        
-            #             if min_est_hessian_det < min_safe_interval or \
-            #                 max_est_hessian_det > max_safe_interval:
-                                
-            #                 next_alpha = curr_alpha / self.gi_update_factor
-                            
-            #             else:
-                            
-            #                 next_alpha = curr_alpha * self.gi_update_factor
-                            
-            #         next_alpha = np.clip(next_alpha, self.gi_min_alpha, self.gi_max_alpha)
-                    
-            #     else:
-                    
-            #         raise ValueError()
-                    
-            #     self.next_alpha = next_alpha
-            #     self.next_actor_lr = next_actor_lr
                 
         # update critic;
         if True:
@@ -1292,12 +1047,12 @@ class GradA2CAgent(A2CAgent):
                 # if current policy is too far from old policy or is worse than old policy,
                 # decrease alpha;
                 
-                if out_of_range_pac_ratio > self.gi_max_dist_rp_lr or \
-                    est_curr_performance < 0.:
+                # if out_of_range_pac_ratio > self.gi_max_dist_rp_lr or \
+                #     est_curr_performance < 0.:
                     
-                    self.next_alpha = self.gi_curr_alpha / self.gi_update_factor
-                    if self.gi_dynamic_alpha_scheduler in ['dynamic0', 'dynamic2']:
-                        self.next_actor_lr = self.actor_lr / self.gi_update_factor
+                #     self.next_alpha = self.gi_curr_alpha / self.gi_update_factor
+                #     if self.gi_dynamic_alpha_scheduler in ['dynamic0', 'dynamic2']:
+                #         self.next_actor_lr = self.actor_lr / self.gi_update_factor
                 
                 dataset_dict['mu'] = n_mus
                 dataset_dict['sigma'] = n_sigmas
@@ -1525,4 +1280,69 @@ class GradA2CAgent(A2CAgent):
             
         return jacobian
         '''
+    
+    def update_actor_with_alpha_actions(self, 
+                                        t_obses: torch.Tensor,
+                                        t_rp_eps: torch.Tensor,
+                                        t_alpha_actions: torch.Tensor,
+                                        initial_lr: float):
+        # set initial_lr;
+        curr_actor_lr = initial_lr
+        for param in self.actor_optimizer.param_groups:
+            param['lr'] = curr_actor_lr
+            
+        succeed = False
         
+        for iter2 in range(self.max_optimization_iter):
+            
+            # backup current actor;
+            self.save_backup_actor()
+        
+            actor_loss_0 = None
+            actor_loss_1 = None
+            
+            for iter3 in range(self.actor_iterations):
+            
+                _, mu, std, _ = self.actor.forward_with_dist(t_obses)
+            
+                distr = GradNormal(mu, std)
+                rpeps_actions = distr.eps_to_action(t_rp_eps)
+                
+                actor_loss = (rpeps_actions - t_alpha_actions) * (rpeps_actions - t_alpha_actions)
+                actor_loss = torch.sum(actor_loss, dim=-1)
+                actor_loss = actor_loss.mean()
+            
+                # update actor;
+                self.actor_optimizer.zero_grad()
+                actor_loss.backward()
+                grad_norm_before_clip = tu.grad_norm(self.actor.parameters())
+                if self.truncate_grads:
+                    torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.grad_norm)    
+                grad_norm_after_clip = tu.grad_norm(self.actor.parameters()) 
+
+                self.actor_optimizer.step()
+                
+                if iter3 == 0:
+                    actor_loss_0 = actor_loss.detach().cpu().item()
+                elif iter3 == self.actor_iterations - 1:
+                    actor_loss_1 = actor_loss.detach().cpu().item()
+            
+            actor_loss_0 = np.clip(actor_loss_0, 1e-5, None)
+            actor_loss_ratio = actor_loss_1 / actor_loss_0
+        
+            if actor_loss_ratio > 1.:
+                
+                with torch.no_grad():
+                    
+                    # if optimization did not work well;
+                    self.load_backup_actor()
+                    
+                    curr_actor_lr /= self.optimizer_lr_multiplier
+                    for param in self.actor_optimizer.param_groups:
+                        param['lr'] = curr_actor_lr
+                        
+            else:
+                
+                succeed = True
+                
+        return succeed, curr_actor_lr

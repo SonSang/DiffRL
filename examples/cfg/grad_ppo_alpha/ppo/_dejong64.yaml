@@ -90,11 +90,11 @@ params:
 
       max_alpha: 1e-1
       desired_alpha: 1e-2
-      update_factor: 1.05
+      # update_factor: 1.05
       update_interval: 0.05
-      dynamic_alpha_scheduler: dynamic1
-      max_dist_rp_lr: 0.5
-      max_est_hessian_det_std: 0.05
+      # dynamic_alpha_scheduler: dynamic1
+      # max_dist_rp_lr: 0.5
+      # max_est_hessian_det_std: 0.05
 
       stable_ppo: True
       
