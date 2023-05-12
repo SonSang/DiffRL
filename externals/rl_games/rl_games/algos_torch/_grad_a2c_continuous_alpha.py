@@ -23,6 +23,8 @@ import utils.torch_utils as tu
 import utils.common
 from utils.running_mean_std import RunningMeanStd
 
+save_distribution = True
+
 class GradA2CAgent(A2CAgent):
     def __init__(self, base_name, config):
         
@@ -216,7 +218,24 @@ class GradA2CAgent(A2CAgent):
 
         if self.has_central_value:
             raise NotImplementedError()
-
+        
+        if save_distribution:
+            
+            old_mu, old_std = self.dataset.values_dict['old_mu'][0], self.dataset.values_dict['old_sigma'][0]
+            
+            with open(self.experiment_dir + "/distrib_0.txt", 'a') as f:
+                
+                f.write("{:.10f} {:.10f}\n".format(old_mu.cpu().item(), (old_std * old_std).cpu().item()))
+            
+            with torch.no_grad():
+                obses = self.dataset.values_dict['obs']
+                n_mu, n_std = self.actor.forward_dist(obses)
+                n_mu, n_std = n_mu[0], n_std[0]
+                
+            with open(self.experiment_dir + "/distrib_1.txt", 'a') as f:
+                
+                f.write("{:.10f} {:.10f}\n".format(n_mu.cpu().item(), (n_std * n_std).cpu().item()))
+            
         a_losses = []
         c_losses = []
         b_losses = []
@@ -305,6 +324,18 @@ class GradA2CAgent(A2CAgent):
             kls.append(torch.zeros((1,), dtype=torch.float32, device=self.ppo_device))
             last_lr = 0.
             lr_mul = 0.
+            
+        
+        if save_distribution:
+            
+            with torch.no_grad():
+                obses = self.dataset.values_dict['obs']
+                n_mu, n_std = self.actor.forward_dist(obses)
+                n_mu, n_std = n_mu[0], n_std[0]
+                
+            with open(self.experiment_dir + "/distrib_2.txt", 'a') as f:
+                
+                f.write("{:.10f} {:.10f}\n".format(n_mu.cpu().item(), (n_std * n_std).cpu().item()))
 
         if self.schedule_type == 'standard_epoch':
             raise NotImplementedError()

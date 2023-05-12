@@ -67,8 +67,12 @@ fig = go.Figure(data=[go.Surface(z=zs.cpu().numpy(), x=xs.cpu().numpy(), y=ys.cp
 fig.update_layout(title='Reward Surface of 1D Ackley Function')
 fig.write_html(output_path + "/3d_reward_surface.html")
 
-# 2D;
+# trajectories;
 
+
+
+# 2D;
+'''
 fig = px.imshow(zs.cpu().numpy(),
                 labels=dict(x="E(x)", y="Var(x)", color="E[f(x)]"),
                 x=xs.cpu().numpy(),
@@ -76,3 +80,4 @@ fig = px.imshow(zs.cpu().numpy(),
                )
 fig.update_xaxes(side="top")
 fig.write_html(output_path + "/2d_reward_surface.html")
+'''

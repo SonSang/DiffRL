@@ -9,3 +9,4 @@ externals/traffic/dist/
 *.gif
 .DS_Store
 *.egg-info/
+nn/
