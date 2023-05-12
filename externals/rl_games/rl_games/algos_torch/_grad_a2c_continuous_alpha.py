@@ -23,7 +23,7 @@ import utils.torch_utils as tu
 import utils.common
 from utils.running_mean_std import RunningMeanStd
 
-save_distribution = True
+save_distribution = False
 
 class GradA2CAgent(A2CAgent):
     def __init__(self, base_name, config):
