@@ -1,0 +1,129 @@
+params:
+  algo:
+    name: grad_a2c_continuous_alpha
+  config:
+    bounds_loss_coef: 0.0001
+    clip_value: true
+    critic_coef: 4
+    defer_summaries_sec: 0.001
+    e_clip: 0.2
+    entropy_coef: 0.0
+    env_name: dflex
+    gamma: 0.99
+    gi_params:
+      actor_iterations_alpha: 16
+      actor_learning_rate_alpha: 1e-4
+      actor_learning_rate_shac: 2e-3
+      algorithm: dynamic-alpha-only
+      betas:
+      - 0.7
+      - 0.95
+      critic_iterations: 16
+      critic_learning_rate: 2e-3
+      critic_num_batch: 4
+      desired_alpha: 2e-1
+      dynamic_alpha_scheduler: dynamic4
+      lr_schedule: linear
+      max_alpha: 1e-0
+      max_dist_rp_lr: 0.5
+      max_est_hessian_det_std: 0.05
+      network:
+        actor: GradActorStochasticMLP
+        actor_mlp:
+          activation: elu
+          units:
+          - 128
+          - 64
+          - 32
+        critic: CriticMLP
+        critic_mlp:
+          activation: elu
+          units:
+          - 64
+          - 64
+        fixed_sigma: false
+      num_step: 32
+      seed: 1
+      stable_ppo: false
+      target_critic_alpha: 0.2
+      update_factor: 1.01
+      update_interval: 0.4
+    grad_norm: 1.0
+    kl_threshold: 0.008
+    learning_rate: 0.0
+    lr_schedule: constant
+    lr_threshold: 0.008
+    max_epochs: 2000
+    mini_epochs: 5
+    minibatch_size: 2048
+    mixed_precision: false
+    multi_gpu: false
+    name: df_cheetah_gradppo
+    normalize_advantage: true
+    normalize_input: true
+    normalize_value: false
+    num_actors: 64
+    player:
+      determenistic: true
+      games_num: 12
+      num_actors: 4
+      print_stats: true
+    ppo: true
+    reward_shaper:
+      scale_value: 0.01
+    save_best_after: 50
+    save_frequency: 100
+    score_to_win: 20000
+    seq_len: 4
+    steps_num: 32
+    summaries_interval_sec_max: 0.002
+    summaries_interval_sec_min: 0.001
+    tau: 0.95
+    truncate_grads: true
+  diff_env:
+    MM_caching_frequency: 16
+    episode_length: 1000
+    name: CheetahEnv
+    stochastic_env: true
+  general:
+    cfg: ./examples/cfg/grad_ppo_alpha/alpha/cheetah.yaml
+    checkpoint: Base
+    logdir: ./examples/logs/cheetah/grad_ppo_alpha/alpha/05-12-2023-04-11-36
+    no_time_stamp: false
+    num_envs: 0
+    play: false
+    ppo_kl_threshold: 0.008
+    ppo_lr_threshold: 0.008
+    render: false
+    rl_device: cuda:0
+    seed: 1
+    test: false
+    train: true
+  load_checkpoint: false
+  load_path: nn/df_cheetah.pth
+  model:
+    name: continuous_a2c_logstd
+  network:
+    mlp:
+      activation: elu
+      d2rl: false
+      initializer:
+        name: default
+      regularizer:
+        name: None
+      units:
+      - 64
+      - 64
+    name: actor_critic
+    separate: false
+    space:
+      continuous:
+        fixed_sigma: true
+        mu_activation: None
+        mu_init:
+          name: default
+        sigma_activation: None
+        sigma_init:
+          name: const_initializer
+          val: 0
+  seed: 1
