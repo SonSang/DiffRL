@@ -585,9 +585,21 @@ class GradA2CAgent(A2CAgent):
                 t_obses = swap_and_flatten01(torch.stack(grad_obses, dim=0))
                 t_rp_eps = swap_and_flatten01(torch.stack(grad_rp_eps, dim=0))
                 
+                t_advantages = swap_and_flatten01(torch.stack(curr_grad_advs, dim=0))
                 t_actions = swap_and_flatten01(torch.stack(grad_actions, dim=0))
                 t_adv_gradient = swap_and_flatten01(t_adv_gradient)
                 t_alpha_actions = t_actions + self.gi_curr_alpha * t_adv_gradient
+                
+                # write log about variance;
+                # advantage variance;
+                t_advantages_var = torch.var(t_advantages, dim=0)
+                t_adv_gradient_cov = torch.cov(t_adv_gradient.transpose(0, 1))
+                if t_adv_gradient_cov.ndim == 0:
+                    t_adv_gradient_cov = t_adv_gradient_cov.unsqueeze(0).unsqueeze(0)
+                t_adv_gradient_var = t_adv_gradient_cov.diagonal(0).sum()
+                
+                self.writer.add_scalar("info_alpha/advantage_variance", t_advantages_var, self.epoch_num)
+                self.writer.add_scalar("info_alpha/advantage_gradient_variance", t_adv_gradient_var, self.epoch_num)
                 
             # initialize optimizer;
             # self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.actor_lr)
