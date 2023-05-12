@@ -72,7 +72,7 @@ for xi, curr_mean in enumerate(xs):
         
 # 3D;
         
-reward_surface = go.Surface(z=zs.cpu().numpy(), x=xs.cpu().numpy(), y=ys.cpu().numpy())
+reward_surface = go.Surface(z=zs.cpu().numpy(), x=xs.cpu().numpy(), y=ys.cpu().numpy(), showscale=False)
 # fig.update_layout(title='Reward Surface of 1D Ackley Function')
 # fig.write_html(output_path + "/3d_reward_surface.html")
 
@@ -143,13 +143,13 @@ for ti, traj_file in enumerate(traj_files):
     mode = "markers" if ti > 1 else "markers+lines"
     size = 3 if ti > 1 else 5
     if ti == 0:
-        name = "gippo"
+        name = "GI-PPO"
     elif ti == 1:
-        name = "rp+ppo"
+        name = "RP+PPO"
     elif ti == 2:
-        name = "rp update (gippo)"
+        name = "RP Update (GI-PPO)"
     else:
-        name = "rp update (rp+ppo)"
+        name = "RP Update (RP+PPO)"
     
     trajectory = go.Scatter3d(x=mean_list, 
                             y=var_list, 
@@ -175,15 +175,21 @@ layout = go.Layout(
     legend=dict(
         orientation='h',
         y=0,
+        xanchor="auto",
+        x=0.5,
+        font={"size": 25},
+        
     ),
     width=1000,
     height=800,
     scene = dict(xaxis = dict(
                 title='Mean'),
             yaxis = dict(
-                title='Var'),
+                title='Var',),
             zaxis = dict(
-                title='Expected Value'),),
+                title='Expected Value',),
+            ),
+    
     # margin=dict(l=20, r=20, t=20, b=20),
     # yaxis2=dict(
     #     domain=[0.33, 0.66]
@@ -192,6 +198,7 @@ layout = go.Layout(
     #     domain=[0.66, 1]
     # )
 )
+
 
 fig = go.Figure(data=data, layout=layout)
 fig.write_html(output_path + "/3d_trajectory_partial.html")

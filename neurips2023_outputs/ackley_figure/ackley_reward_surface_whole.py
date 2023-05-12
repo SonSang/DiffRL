@@ -67,7 +67,7 @@ for xi, curr_mean in enumerate(xs):
         
 # 3D;
         
-reward_surface = go.Surface(z=zs.cpu().numpy(), x=xs.cpu().numpy(), y=ys.cpu().numpy(),)
+reward_surface = go.Surface(z=zs.cpu().numpy(), x=xs.cpu().numpy(), y=ys.cpu().numpy(),showscale=False)
 # fig.update_layout(title='Reward Surface of 1D Ackley Function')
 # fig.write_html(output_path + "/3d_reward_surface.html")
 
@@ -82,7 +82,7 @@ traj_files = ['./neurips2023_outputs/ackley_figure/training_logs/ppo/05-12-2023-
                 #'./neurips2023_outputs/ackley_figure/training_logs/gishac/05-12-2023-01-52-37/distrib_0.txt',
                 ]
 
-colors = ['green', "red", "blue"]
+colors = ['green', "yellow", "blue"]
 
 for ti, traj_file in enumerate(traj_files):
 
@@ -137,11 +137,11 @@ for ti, traj_file in enumerate(traj_files):
                 break
             
     if ti == 0:
-        name = "ppo"
+        name = "PPO"
     elif ti == 1:
-        name = "rp"
+        name = "RP"
     elif ti == 2:
-        name = "gippo"
+        name = "GI-PPO"
             
     trajectory = go.Scatter3d(x=mean_list, 
                             y=var_list, 
@@ -150,7 +150,8 @@ for ti, traj_file in enumerate(traj_files):
                                 size=5,
                                 color=colors[ti],
                             ),
-                            name=name)
+                            name=name,
+                            )
                             # line=dict(
                             #     color='yellow',
                             #     width=4
@@ -165,15 +166,21 @@ layout = go.Layout(
     legend=dict(
         orientation='h',
         y=0,
+        xanchor="auto",
+        x=0.5,
+        font={"size": 25},
+        
     ),
     width=1000,
     height=800,
     scene = dict(xaxis = dict(
                 title='Mean'),
             yaxis = dict(
-                title='Var'),
+                title='Var',),
             zaxis = dict(
-                title='Expected Value'),),
+                title='Expected Value',),
+            ),
+    
     # margin=dict(l=20, r=20, t=20, b=20),
     # yaxis2=dict(
     #     domain=[0.33, 0.66]
@@ -184,6 +191,7 @@ layout = go.Layout(
 )
 
 fig = go.Figure(data=data, layout=layout)
+fig.update_layout(scene_aspectmode='cube')
 fig.write_html(output_path + "/3d_trajectory_whole.html")
         
 
