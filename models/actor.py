@@ -150,7 +150,7 @@ class GradActorStochasticMLP(nn.Module):
             logstd = cfg_network.get('actor_logstd_init', -1.0)
             self.logstd = torch.nn.Parameter(torch.ones(action_dim, dtype=torch.float32, device=device) * logstd)
         else:
-            self.logstd = nn.Linear(out_size, action_dim)
+            self.logstd = nn.Linear(out_size, action_dim).to(device)
             
         self.action_dim = action_dim
         self.obs_dim = obs_dim
