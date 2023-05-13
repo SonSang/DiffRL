@@ -175,13 +175,17 @@ def objective(trial):
     cfg_train["params"]["config"]["gi_params"]["update_factor"] = update_factor
     
     # update interval;
-    update_interval = trial.suggest_categorical("update_interval", ["0.05", "0.1", "0.2", "0.4"])
+    update_interval = trial.suggest_categorical("update_interval", ["0.2", "0.4"])
     update_interval = float(update_interval)
     cfg_train["params"]["config"]["gi_params"]["update_interval"] = update_interval
     
     # dynamic alpha scheduler;
     # dynamic_alpha_scheduler = trial.suggest_categorical("dynamic_alpha_scheduler", ["static_lr", "dynamic0", "dynamic1", "dynamic2", "dynamic3"])
     cfg_train["params"]["config"]["gi_params"]["dynamic_alpha_scheduler"] = 'dynamic4' # dynamic_alpha_scheduler
+
+    cfg_train['params']['config']['steps_num'] = 64
+    cfg_train['params']['config']['minibatch_size'] = cfg_train['params']['config']['steps_num'] * cfg_train['params']['config']['num_actors']
+    cfg_train["params"]["config"]["gi_params"]['num_step'] = 64
 
     # max_est_hessian_det_std = trial.suggest_categorical("max_est_hessian_det_std", ["0.05", "0.10", "0.15", "0.20"])
     # max_est_hessian_det_std = float(max_est_hessian_det_std)
@@ -323,7 +327,7 @@ if __name__ == '__main__':
     args.num_envs = 0           # default;
     args.play = False           # only training;
     args.render = False         # no rendering;
-    args.logdir = f"optuna/logs/dynamic_alpha_version_13/{args.env}/"
+    args.logdir = f"optuna/logs/dynamic_alpha_version_14/{args.env}/"
     args.cfg = f"./examples/cfg/grad_ppo_alpha/{args.env}.yaml"
     args.no_time_stamp = False  # add time stamp to log files;
 
@@ -353,7 +357,7 @@ if __name__ == '__main__':
     
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
 
-    study_name = f"dynamic-alpha-version-13-{args.env}"  # Unique identifier of the study.
+    study_name = f"dynamic-alpha-version-14-{args.env}"  # Unique identifier of the study.
     
     if not os.path.exists("./optuna/db"):
         os.makedirs("./optuna/db")

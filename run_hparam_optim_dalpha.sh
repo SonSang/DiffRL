@@ -1,25 +1,26 @@
 NUM_TRIALS=10
+NUM_EPOCHS=250
 
 # dejong
-python optimize_hparams_dalpha.py --env _dejong --num_trial ${NUM_TRIALS} --num_epoch -1
+# python optimize_hparams_dalpha.py --env _dejong --num_trial ${NUM_TRIALS} --num_epoch ${NUM_EPOCHS} --rl_device cpu
 
 # ackley
-python optimize_hparams_dalpha.py --env _ackley --num_trial ${NUM_TRIALS} --num_epoch -1
+# python optimize_hparams_dalpha.py --env _ackley --num_trial ${NUM_TRIALS} --num_epoch ${NUM_EPOCHS} --rl_device cpu
 
 # cartpole
-python optimize_hparams_dalpha.py --env cartpole_swing_up --num_trial ${NUM_TRIALS} --num_epoch -1
+# python optimize_hparams_dalpha.py --env cartpole_swing_up --num_trial ${NUM_TRIALS} --num_epoch ${NUM_EPOCHS} --rl_device cpu
 
 # ant
-python optimize_hparams_dalpha.py --env ant --num_trial ${NUM_TRIALS} --num_epoch -1
+python optimize_hparams_dalpha.py --env ant --num_trial ${NUM_TRIALS} --num_epoch ${NUM_EPOCHS}  --rl_device cpu
 
 # hopper
-python optimize_hparams_dalpha.py --env hopper --num_trial ${NUM_TRIALS} --num_epoch -1
+python optimize_hparams_dalpha.py --env hopper --num_trial ${NUM_TRIALS} --num_epoch ${NUM_EPOCHS}  --rl_device cpu
 
 # cheetah
-python optimize_hparams_dalpha.py --env cheetah --num_trial ${NUM_TRIALS} --num_epoch -1
+python optimize_hparams_dalpha.py --env cheetah --num_trial ${NUM_TRIALS} --num_epoch ${NUM_EPOCHS}  --rl_device cpu
 
-# cheetah
-python optimize_hparams_dalpha.py --env humanoid --num_trial ${NUM_TRIALS} --num_epoch -1
+# humanoid
+# python optimize_hparams_dalpha.py --env humanoid --num_trial ${NUM_TRIALS} --num_epoch ${NUM_EPOCHS}  --rl_device cpu
 
-# cheetah
-python optimize_hparams_dalpha.py --env snu_humanoid --num_trial ${NUM_TRIALS} --num_epoch -1
+# snu_humanoid
+# python optimize_hparams_dalpha.py --env snu_humanoid --num_trial ${NUM_TRIALS} --num_epoch ${NUM_EPOCHS}  --rl_device cpu
