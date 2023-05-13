@@ -82,7 +82,7 @@ traj_files = ['./neurips2023_outputs/ackley_figure/training_logs/ppo/05-12-2023-
                 #'./neurips2023_outputs/ackley_figure/training_logs/gishac/05-12-2023-01-52-37/distrib_0.txt',
                 ]
 
-colors = ['green', "yellow", "blue"]
+colors = ['green', "gold", "blue"]
 
 for ti, traj_file in enumerate(traj_files):
 
@@ -147,7 +147,7 @@ for ti, traj_file in enumerate(traj_files):
                             y=var_list, 
                             z=eval_list, 
                             marker=dict(
-                                size=5,
+                                size=15,
                                 color=colors[ti],
                             ),
                             name=name,
@@ -164,15 +164,15 @@ layout = go.Layout(
     #     domain=[0, 0.33]
     # ),
     legend=dict(
-        orientation='h',
-        y=0,
-        xanchor="auto",
-        x=0.5,
-        font={"size": 25},
-        
+        # orientation='h',
+        y=0.5,
+        # xanchor="auto",
+        x=0.75,
+        font={"size": 50},
+        itemsizing='constant',
     ),
-    width=1000,
-    height=800,
+    width=1800,
+    height=1400,
     scene = dict(xaxis = dict(
                 title='Mean'),
             yaxis = dict(

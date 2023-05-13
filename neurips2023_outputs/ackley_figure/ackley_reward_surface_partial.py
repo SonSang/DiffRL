@@ -141,7 +141,7 @@ for ti, traj_file in enumerate(traj_files):
                 break
     
     mode = "markers" if ti > 1 else "markers+lines"
-    size = 3 if ti > 1 else 5
+    size = 9 if ti > 1 else 12
     if ti == 0:
         name = "GI-PPO"
     elif ti == 1:
@@ -173,15 +173,15 @@ layout = go.Layout(
     #     domain=[0, 0.33]
     # ),
     legend=dict(
-        orientation='h',
-        y=0,
-        xanchor="auto",
-        x=0.5,
-        font={"size": 25},
-        
+        # orientation='h',
+        y=0.5,
+        # xanchor="auto",
+        x=0.75,
+        font={"size": 50},
+        itemsizing='constant',
     ),
-    width=1000,
-    height=800,
+    width=1800,
+    height=1400,
     scene = dict(xaxis = dict(
                 title='Mean'),
             yaxis = dict(
