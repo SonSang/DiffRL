@@ -846,6 +846,12 @@ class GradA2CAgent(A2CAgent):
                 self.next_alpha = next_alpha
                 self.next_actor_lr = next_actor_lr
                 
+            else:
+                
+                if not did_converge:
+                    
+                    self.next_actor_lr = self.actor_lr / self.gi_update_factor
+                
         # update critic;
         if True:
 

@@ -1,0 +1,7 @@
+Save material related to empirical proof that our estimated determinant of (I + a * Hessian) is related to variance of analytical gradients.
+
+We show that by computing sample variance of analytical gradients and compare it with our estimated determinants.
+
+1. Generate log info by running "run_grad_variance.sh"
+
+2. Generate graphs using "plot_grad_variance.py"
