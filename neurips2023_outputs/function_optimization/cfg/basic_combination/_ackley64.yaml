@@ -93,7 +93,7 @@ params:
       # algorithm: 'grad-ppo-shac'
       # algorithm: 'grad-ppo-alpha'
       # algorithm: 'basic-lr'
-      algorithm: 'basic-rp'
+      algorithm: 'basic-combination'
 
 
       max_alpha: 1e-0
