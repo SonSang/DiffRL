@@ -730,15 +730,15 @@ class GradA2CAgent(A2CAgent):
             min_est_hessian_det = torch.min(est_hessian_det)
             max_est_hessian_det = torch.max(est_hessian_det)
             
-            if len(self.min_hessian_det_list) == self.min_hessian_det_list_size:
-                self.min_hessian_det_list.pop(0)
-            self.min_hessian_det_list.append(min_est_hessian_det)
-            min_hessian_std = np.std(self.min_hessian_det_list)
+            # if len(self.min_hessian_det_list) == self.min_hessian_det_list_size:
+            #     self.min_hessian_det_list.pop(0)
+            # self.min_hessian_det_list.append(min_est_hessian_det)
+            # min_hessian_std = np.std(self.min_hessian_det_list)
             
             self.writer.add_scalar("info_alpha/mean_est_hessian_det", mean_est_hessian_det, self.epoch_num)
             self.writer.add_scalar("info_alpha/min_est_hessian_det", min_est_hessian_det, self.epoch_num)
             self.writer.add_scalar("info_alpha/max_est_hessian_det", max_est_hessian_det, self.epoch_num)
-            self.writer.add_scalar("info_alpha/est_hessaian_det_std", min_hessian_std, self.epoch_num)
+            # self.writer.add_scalar("info_alpha/est_hessaian_det_std", min_hessian_std, self.epoch_num)
             
             if self.gi_algorithm in ['dynamic-alpha-only', 'grad-ppo-alpha']:
                 
