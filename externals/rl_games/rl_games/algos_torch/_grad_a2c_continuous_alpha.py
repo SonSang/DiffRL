@@ -477,8 +477,12 @@ class GradA2CAgent(A2CAgent):
             if self.use_action_masks:
                 raise NotImplementedError()
             else:
-                res_dict = self.get_action_values(self.obs, curr_obs_rms, curr_val_rms)
-
+                if self.gi_algorithm in ['ppo-only', 'basic-lr']:
+                    with torch.no_grad():
+                        res_dict = self.get_action_values(self.obs, curr_obs_rms, curr_val_rms)
+                else:
+                    res_dict = self.get_action_values(self.obs, curr_obs_rms, curr_val_rms)
+                
             # we store tensor objects with gradients;
             grad_obses.append(res_dict['obs'])
             grad_values.append(res_dict['values'])
@@ -503,7 +507,11 @@ class GradA2CAgent(A2CAgent):
             actions = torch.tanh(grad_actions[-1])
             # actions = grad_actions[-1]
             
-            self.obs, rewards, self.dones, infos = self.vec_env.step(actions)
+            if self.gi_algorithm in ['ppo-only', 'basic-lr']:
+                with torch.no_grad():
+                    self.obs, rewards, self.dones, infos = self.vec_env.step(actions)
+            else:
+                self.obs, rewards, self.dones, infos = self.vec_env.step(actions)
             
             self.obs = self.obs_to_tensors(self.obs)
             rewards = rewards.unsqueeze(-1)
