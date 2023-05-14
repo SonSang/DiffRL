@@ -1,6 +1,6 @@
 params:  
   diff_env:
-    name: AckleyEnv
+    name: DejongEnv64
     stochastic_env: False
     episode_length: 1
     MM_caching_frequency: 1
@@ -36,11 +36,11 @@ params:
         name: None
 
   load_checkpoint: False
-  load_path: nn/df_ackley.pth
+  load_path: nn/df_dejong64.pth
 
   config:
     device: cpu
-    name: df_ackley
+    name: df_dejong64
     env_name: dflex
     multi_gpu: False
     ppo: True
@@ -86,10 +86,10 @@ params:
     gi_params:
       
       num_step: 1
-      algorithm: 'shac-only'
+      algorithm: 'ppo-only'
 
       max_alpha: 1e-0
-      desired_alpha: 1e-1
+      desired_alpha: 1e-5
       update_factor: 1.1
       update_interval: 0.20
       dynamic_alpha_scheduler: dynamic4
@@ -112,10 +112,10 @@ params:
           units: [32, 32]
           activation: elu
 
-      lr_schedule: linear # [constant, linear]
+      lr_schedule: constant # [constant, linear]
       
       # LEARNING RATE FOR RP-GRADIENT BASED ACTOR UPDATE;
-      actor_learning_rate_shac: 1e-3
+      actor_learning_rate_shac: 1e-2
       
       actor_learning_rate_alpha: 1e-3
       actor_iterations_alpha: 16

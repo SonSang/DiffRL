@@ -65,8 +65,8 @@ params:
     truncate_grads: True
     e_clip: 0.2
     steps_num: 1
-    num_actors: 4
-    minibatch_size: 4
+    num_actors: 64
+    minibatch_size: 64
     mini_epochs: 5
     critic_coef: 4
     clip_value: True
@@ -115,7 +115,7 @@ params:
       lr_schedule: constant # [constant, linear]
       
       # LEARNING RATE FOR RP-GRADIENT BASED ACTOR UPDATE;
-      actor_learning_rate_shac: 1e-2
+      actor_learning_rate_shac: 1e-3
       
       actor_learning_rate_alpha: 1e-3
       actor_iterations_alpha: 16

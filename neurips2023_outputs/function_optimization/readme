@@ -1,0 +1,3 @@
+Performance tests for Dejong, Ackley function optimization problems.
+
+1. Run experiments with [run_function_optim.sh]

@@ -52,7 +52,7 @@ params:
     normalize_advantage: True
     gamma: 0.99
     tau: 0.95
-    learning_rate: 1e-2
+    learning_rate: 1e-4
     lr_schedule: constant
     lr_threshold: 0.008
     kl_threshold: 0.008
@@ -86,7 +86,7 @@ params:
     gi_params:
       
       num_step: 1
-      algorithm: 'shac-only'
+      algorithm: 'ppo-only'
 
       max_alpha: 1e-0
       desired_alpha: 1e-1
@@ -112,10 +112,10 @@ params:
           units: [32, 32]
           activation: elu
 
-      lr_schedule: linear # [constant, linear]
+      lr_schedule: constant # [constant, linear]
       
       # LEARNING RATE FOR RP-GRADIENT BASED ACTOR UPDATE;
-      actor_learning_rate_shac: 1e-3
+      actor_learning_rate_shac: 1e-2
       
       actor_learning_rate_alpha: 1e-3
       actor_iterations_alpha: 16
