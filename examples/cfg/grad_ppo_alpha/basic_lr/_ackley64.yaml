@@ -1,6 +1,6 @@
 params:  
   diff_env:
-    name: DejongEnv
+    name: AckleyEnv64
     stochastic_env: False
     episode_length: 1
     MM_caching_frequency: 1
@@ -36,11 +36,11 @@ params:
         name: None
 
   load_checkpoint: False
-  load_path: nn/df_dejong.pth
+  load_path: nn/df_ackley64.pth
 
   config:
     device: cpu
-    name: df_dejong
+    name: df_ackley64
     env_name: dflex
     multi_gpu: False
     ppo: True
@@ -52,12 +52,12 @@ params:
     normalize_advantage: True
     gamma: 0.99
     tau: 0.95
-    learning_rate: 0.0
+    learning_rate: 1e-4
     lr_schedule: constant
-    lr_threshold: 0.008
-    kl_threshold: 0.008
+    lr_threshold: 0.015
+    kl_threshold: 0.015
     score_to_win: 20000
-    max_epochs: 500
+    max_epochs: 2000
     save_best_after: 50
     save_frequency: 100
     grad_norm: 1.0
@@ -89,20 +89,21 @@ params:
       # algorithm: 'shac-only' 
       # algorithm: 'ppo-only'
       # algorithm: 'static-alpha-only'
-      algorithm: 'dynamic-alpha-only'
+      # algorithm: 'dynamic-alpha-only'
       # algorithm: 'grad-ppo-shac'
       # algorithm: 'grad-ppo-alpha'
+      algorithm: 'basic-lr'
 
 
-      max_alpha: 1e-1
-      desired_alpha: 1e-2
-      update_factor: 1.05
-      update_interval: 0.05
-      dynamic_alpha_scheduler: dynamic1
-      max_dist_rp_lr: 0.5
+      max_alpha: 1e-0
+      desired_alpha: 1e-1
+      update_factor: 1.1
+      update_interval: 0.40
+      dynamic_alpha_scheduler: dynamic4
+      max_dist_rp_lr: 0.2
       max_est_hessian_det_std: 0.05
       stable_ppo: False
-      
+
       # THESE ARE THE REAL NETWORKS WE ARE GOING TO USE;
       network:
         actor: GradActorStochasticMLP # ActorDeterministicMLP
@@ -120,10 +121,12 @@ params:
       lr_schedule: linear # [constant, linear]
       
       # LEARNING RATE FOR RP-GRADIENT BASED ACTOR UPDATE;
-      actor_learning_rate_shac: 4e-2 # 4e-2
+      actor_learning_rate_shac: 1e-3 # 4e-2
       
-      actor_learning_rate_alpha: 1e-2
-      actor_iterations_alpha: 16
+      actor_learning_rate_alpha: 1e-5
+      actor_iterations_alpha: 128
+
+      actor_learning_rate_basic: 1e-3
 
       # LEARNING RATE FOR CRITIC UPDATE;
       critic_learning_rate: 1e-3

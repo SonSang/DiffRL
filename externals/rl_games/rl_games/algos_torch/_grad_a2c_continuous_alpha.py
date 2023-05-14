@@ -71,7 +71,7 @@ class GradA2CAgent(A2CAgent):
         # grad-ppo-shac: Mixture of shac and ppo, simply take shac update and do PPO update;
         # grad-ppo-alpha: Update policy using mixture of dynamic alpha policy and PPO
         self.gi_algorithm = config['gi_params']['algorithm']
-        assert self.gi_algorithm in ["shac-only", "ppo-only", "static-alpha-only", "dynamic-alpha-only", "grad-ppo-shac", "grad-ppo-alpha"], "Invalid algorithm"
+        assert self.gi_algorithm in ["shac-only", "ppo-only", "static-alpha-only", "dynamic-alpha-only", "grad-ppo-shac", "grad-ppo-alpha", "basic-lr", "basic-rp", "basic-combination"], "Invalid algorithm"
     
         # initialize optimizer for RP policy update;
 
@@ -84,6 +84,11 @@ class GradA2CAgent(A2CAgent):
 
             self.actor_lr = float(config['gi_params']["actor_learning_rate_alpha"])
             self.actor_iterations = config['gi_params']['actor_iterations_alpha']
+            
+        elif self.gi_algorithm in ['basic-lr', 'basic-rp', 'basic-combination']:
+            
+            self.actor_lr = float(config['gi_params']['actor_learning_rate_basic'])
+            self.actor_iterations = 1
             
         else:
             
@@ -122,10 +127,6 @@ class GradA2CAgent(A2CAgent):
         
         self.next_alpha = self.gi_curr_alpha
         self.next_actor_lr = self.actor_lr
-        
-        self.min_hessian_det_list = []
-        self.min_hessian_det_list_size = 16
-        self.max_hessian_det_std = float(config["gi_params"]["max_est_hessian_det_std"])
         
         # initialize ppo optimizer;
 
@@ -563,8 +564,10 @@ class GradA2CAgent(A2CAgent):
         # SHAC-style actor update;
         if self.gi_algorithm in ["shac-only", "grad-ppo-shac"]:
 
-            # compute loss for actor network and update;
-            # this equals to GAE(1) of the first term;
+            # this term represents the (total expected return - initial state value) 
+            # as we pass 1.0 as [tau];
+            # e.g.) curr_grad_advs[i][j]: total expected return of j-th actor starting from i-th time step
+            #                               - state value of j-th actor at i-th time step
             curr_grad_advs = self.grad_advantages(1.0, 
                                                 grad_values, 
                                                 grad_next_values,
@@ -573,6 +576,8 @@ class GradA2CAgent(A2CAgent):
                                                 last_fdones)
             
             # add value of the states;
+            # even though this addition does not change the RP gradients, as action at i-th time step
+            # does not affect state value of i-th time step, we do here to restore full total expected return;
             for i in range(len(grad_values)):
                 curr_grad_advs[i] = curr_grad_advs[i] + grad_values[i]
 
@@ -851,6 +856,85 @@ class GradA2CAgent(A2CAgent):
                 if not did_converge:
                     
                     self.next_actor_lr = self.actor_lr / self.gi_update_factor
+                    
+        elif self.gi_algorithm in ['basic-lr', 'basic-rp', 'basic-combination']:
+            
+            # compute advantages;
+            
+            curr_grad_advs = self.grad_advantages(1.0, 
+                                                grad_values, 
+                                                grad_next_values,
+                                                grad_rewards,
+                                                grad_fdones,
+                                                last_fdones)
+            
+            with torch.no_grad():
+            
+                t_obses = swap_and_flatten01(torch.stack(grad_obses, dim=0))
+                t_advantages = swap_and_flatten01(torch.stack(curr_grad_advs, dim=0))
+                t_actions = swap_and_flatten01(torch.stack(grad_actions, dim=0))
+            
+            if self.gi_algorithm == 'basic-lr':
+                
+                # update using LR policy gradients estimated through log-derivative trick;
+                
+                # to reduce variance, we admit normalizing advantages;
+                if self.normalize_advantage:
+                    
+                    t_advantages = (t_advantages - t_advantages.mean()) / (t_advantages.std() + 1e-8)
+                
+                # instead of using whole trajectory's expected total reward, we use advantage
+                # terms of each time step here to reduce variance further;
+                # (using total expected return resulted in hopless results in some problems...)
+                _, mu, std, _ = self.actor.forward_with_dist(t_obses)
+                t_neglogpacs = self.neglogp(t_actions, mu, std, torch.log(std))
+                    
+                actor_loss = t_advantages * t_neglogpacs.unsqueeze(-1)
+                actor_loss = torch.mean(actor_loss)
+                
+                self.actor_optimizer.zero_grad()
+                actor_loss.backward()
+                grad_norm_before_clip = tu.grad_norm(self.actor.parameters())
+                if self.truncate_grads:
+                    torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.grad_norm)    
+                grad_norm_after_clip = tu.grad_norm(self.actor.parameters()) 
+
+                self.actor_optimizer.step()
+            
+            elif self.gi_algorithm == "basic-rp":
+                
+                # same as shac;
+                
+                # add value of the states;
+                for i in range(len(grad_values)):
+                    curr_grad_advs[i] = curr_grad_advs[i] + grad_values[i]
+
+                # compute loss;
+                actor_loss: torch.Tensor = -self.grad_advantages_first_terms_sum(curr_grad_advs, grad_start)
+                actor_loss = actor_loss / (self.gi_num_step * self.num_actors * self.num_agents)
+
+                # update actor;
+                self.actor_optimizer.zero_grad()
+                actor_loss.backward()
+                grad_norm_before_clip = tu.grad_norm(self.actor.parameters())
+                if self.truncate_grads:
+                    torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.grad_norm)    
+                grad_norm_after_clip = tu.grad_norm(self.actor.parameters()) 
+
+                self.actor_optimizer.step()
+                # print('actor , grad norm before clip = {:7.6f}'.format(grad_norm_before_clip.detach().cpu().item()))
+
+            else:
+                
+                # combine LR and RP gradients by considering their sample variances;
+                
+                
+                
+                raise NotImplementedError()
+               
+        else:
+            
+            raise ValueError()
                 
         # update critic;
         if True:

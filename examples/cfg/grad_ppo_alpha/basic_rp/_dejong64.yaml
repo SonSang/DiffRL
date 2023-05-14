@@ -1,6 +1,6 @@
 params:  
   diff_env:
-    name: DejongEnv
+    name: DejongEnv64
     stochastic_env: False
     episode_length: 1
     MM_caching_frequency: 1
@@ -36,11 +36,11 @@ params:
         name: None
 
   load_checkpoint: False
-  load_path: nn/df_dejong.pth
+  load_path: nn/df_dejong64.pth
 
   config:
     device: cpu
-    name: df_dejong
+    name: df_dejong64
     env_name: dflex
     multi_gpu: False
     ppo: True
@@ -89,9 +89,11 @@ params:
       # algorithm: 'shac-only' 
       # algorithm: 'ppo-only'
       # algorithm: 'static-alpha-only'
-      algorithm: 'dynamic-alpha-only'
+      # algorithm: 'dynamic-alpha-only'
       # algorithm: 'grad-ppo-shac'
       # algorithm: 'grad-ppo-alpha'
+      # algorithm: 'basic-lr'
+      algorithm: 'basic-rp'
 
 
       max_alpha: 1e-1
@@ -124,6 +126,8 @@ params:
       
       actor_learning_rate_alpha: 1e-2
       actor_iterations_alpha: 16
+
+      actor_learning_rate_basic: 1e-3
 
       # LEARNING RATE FOR CRITIC UPDATE;
       critic_learning_rate: 1e-3
