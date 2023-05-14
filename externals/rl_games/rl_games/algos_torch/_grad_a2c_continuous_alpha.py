@@ -153,6 +153,8 @@ class GradA2CAgent(A2CAgent):
         self.episode_max_length = self.vec_env.env.episode_length
         
         self.est_curr_performace_rms = RunningMeanStd(shape=(1,), device=self.ppo_device)
+        
+        self.basic_combination_sample_num = 16
 
 
     def init_tensors(self):
@@ -890,6 +892,8 @@ class GradA2CAgent(A2CAgent):
                 t_neglogpacs = self.neglogp(t_actions, mu, std, torch.log(std))
                     
                 actor_loss = t_advantages * t_neglogpacs.unsqueeze(-1)
+                
+                # divide by number of (s, a) pairs;
                 actor_loss = torch.mean(actor_loss)
                 
                 self.actor_optimizer.zero_grad()
@@ -911,7 +915,9 @@ class GradA2CAgent(A2CAgent):
 
                 # compute loss;
                 actor_loss: torch.Tensor = -self.grad_advantages_first_terms_sum(curr_grad_advs, grad_start)
-                actor_loss = actor_loss / (self.gi_num_step * self.num_actors * self.num_agents)
+                
+                # divide by number of trajectories;
+                actor_loss = actor_loss / torch.count_nonzero(grad_start) # (self.gi_num_step * self.num_actors * self.num_agents)
 
                 # update actor;
                 self.actor_optimizer.zero_grad()
@@ -928,10 +934,115 @@ class GradA2CAgent(A2CAgent):
                 
                 # combine LR and RP gradients by considering their sample variances;
                 
+                lr_gradient_var = None
+                rp_gradient_var = None
                 
+                # ======= 
+                # estimate LR gradients and their variances;
+                # =======
                 
-                raise NotImplementedError()
-               
+                if True:
+                
+                    # to reduce variance, we admit normalizing advantages;
+                    if self.normalize_advantage:
+                        
+                        t_advantages = (t_advantages - t_advantages.mean()) / (t_advantages.std() + 1e-8)
+                    
+                    # instead of using whole trajectory's expected total reward, we use advantage
+                    # terms of each time step here to reduce variance further;
+                    # (using total expected return resulted in hopless results in some problems...)
+                    _, mu, std, _ = self.actor.forward_with_dist(t_obses)
+                    t_neglogpacs = self.neglogp(t_actions, mu, std, torch.log(std))
+                        
+                    actor_loss = t_advantages * t_neglogpacs.unsqueeze(-1)
+                    
+                    # randomly select subset to compute sample variance;
+                    sample_num = np.min([self.basic_combination_sample_num, len(actor_loss)])  #if len(actor_loss) > 64 else len(actor_loss)
+                    actor_loss_num = len(actor_loss)
+                    actor_loss_indices = torch.randperm(actor_loss_num)[:sample_num]
+                    lr_gradients = []
+                    for ai in actor_loss_indices:
+                        al = actor_loss[ai].sum()
+                        
+                        self.actor_optimizer.zero_grad()
+                        al.backward(retain_graph=True)
+                        assert len(self.actor_optimizer.param_groups) == 1, ""
+                        grad_list = []
+                        for param in self.actor_optimizer.param_groups[0]['params']:
+                            grad_list.append(param.grad.reshape([-1]))
+                        grad = torch.cat(grad_list)
+                        lr_gradients.append(grad)
+                        
+                    lr_gradients = torch.stack(lr_gradients, dim=0)
+                        
+                    lr_gradient_cov = torch.cov(lr_gradients.transpose(0, 1))
+                    if lr_gradient_cov.ndim == 0:
+                        lr_gradient_cov = lr_gradient_cov.unsqueeze(0).unsqueeze(0)
+                    lr_gradient_var = lr_gradient_cov.diagonal(0).sum()
+                
+                # ======= 
+                # estimate RP gradients and their variances;
+                # =======
+                
+                if True:
+                    
+                    # add value of the states;
+                    for i in range(len(grad_values)):
+                        curr_grad_advs[i] = curr_grad_advs[i] + grad_values[i]
+
+                    rp_gradients = []
+                    for i in range(grad_start.shape[0]):
+                        for j in range(grad_start.shape[1]):
+                            if not grad_start[i, j]:
+                                continue
+                            
+                            al: torch.Tensor = -curr_grad_advs[i][j].sum() # self.grad_advantages_first_terms_sum(curr_grad_advs, grad_start)
+
+                            self.actor_optimizer.zero_grad()
+                            al.backward(retain_graph=True)
+                            assert len(self.actor_optimizer.param_groups) == 1, ""
+                            grad_list = []
+                            for param in self.actor_optimizer.param_groups[0]['params']:
+                                grad_list.append(param.grad.reshape([-1]))
+                            grad = torch.cat(grad_list)
+                            rp_gradients.append(grad)
+                            
+                            if len(rp_gradients) >= self.basic_combination_sample_num:
+                                break
+                        
+                        if len(rp_gradients) >= self.basic_combination_sample_num:
+                            break
+                            
+                    rp_gradients = torch.stack(rp_gradients, dim=0)
+                        
+                    rp_gradient_cov = torch.cov(rp_gradients.transpose(0, 1))
+                    if rp_gradient_cov.ndim == 0:
+                        rp_gradient_cov = rp_gradient_cov.unsqueeze(0).unsqueeze(0)
+                    rp_gradient_var = rp_gradient_cov.diagonal(0).sum()
+                
+                k_lr = (rp_gradient_var) / (lr_gradient_var + rp_gradient_var)
+                k_rp = 1. - k_lr
+                
+                self.writer.add_scalar("info_alpha/basic_k_lr", k_lr, self.epoch_num)
+                
+                lr_actor_loss = t_advantages * t_neglogpacs.unsqueeze(-1)
+                lr_actor_loss = torch.mean(lr_actor_loss)
+                
+                rp_actor_loss = -self.grad_advantages_first_terms_sum(curr_grad_advs, grad_start)
+                rp_actor_loss = rp_actor_loss / torch.count_nonzero(grad_start)
+                
+                actor_loss = (lr_actor_loss * k_lr) + (rp_actor_loss * k_rp)
+                
+                # update actor;
+                self.actor_optimizer.zero_grad()
+                actor_loss.backward()
+                grad_norm_before_clip = tu.grad_norm(self.actor.parameters())
+                if self.truncate_grads:
+                    torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.grad_norm)    
+                grad_norm_after_clip = tu.grad_norm(self.actor.parameters()) 
+
+                self.actor_optimizer.step()
+                
         else:
             
             raise ValueError()

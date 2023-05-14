@@ -1,9 +1,9 @@
 params:  
   diff_env:
-    name: CartPoleSwingUpEnv
-    stochastic_env: True
-    episode_length: 240
-    MM_caching_frequency: 4
+    name: AckleyEnv
+    stochastic_env: False
+    episode_length: 1
+    MM_caching_frequency: 1
 
   algo:
     name: grad_a2c_continuous_alpha
@@ -36,37 +36,37 @@ params:
         name: None
 
   load_checkpoint: False
-  load_path: nn/df_cartpole_swing_up.pth
+  load_path: nn/df_ackley.pth
 
   config:
     device: cpu
-    name: df_cartpole_swing_up_gradppo
+    name: df_ackley
     env_name: dflex
     multi_gpu: False
     ppo: True
     mixed_precision: False
     normalize_input: True
-    normalize_value: False
+    normalize_value: True
     reward_shaper:
       scale_value: 0.01
     normalize_advantage: True
     gamma: 0.99
     tau: 0.95
-    learning_rate: 0.0
+    learning_rate: 1e-4
     lr_schedule: constant
-    lr_threshold: 0.008
-    kl_threshold: 0.008
+    lr_threshold: 0.015
+    kl_threshold: 0.015
     score_to_win: 20000
-    max_epochs: 500
+    max_epochs: 2000
     save_best_after: 50
     save_frequency: 100
     grad_norm: 1.0
     entropy_coef: 0.0
     truncate_grads: True
     e_clip: 0.2
-    steps_num: 32
+    steps_num: 1
     num_actors: 64
-    minibatch_size: 2048
+    minibatch_size: 64
     mini_epochs: 5
     critic_coef: 4
     clip_value: True
@@ -85,22 +85,23 @@ params:
 
     gi_params:
       
-      num_step: 32
+      num_step: 1
       # algorithm: 'shac-only' 
       # algorithm: 'ppo-only'
       # algorithm: 'static-alpha-only'
       # algorithm: 'dynamic-alpha-only'
       # algorithm: 'grad-ppo-shac'
       # algorithm: 'grad-ppo-alpha'
-      algorithm: 'basic-lr'
+      # algorithm: 'basic-lr'
+      algorithm: 'basic-combination'
 
 
-      max_alpha: 1e100 # 4e-2
-      desired_alpha: 1e-2
-      update_factor: 1.02
-      update_interval: 0.05
+      max_alpha: 1e-0
+      desired_alpha: 1e-1
+      update_factor: 1.1
+      update_interval: 0.40
       dynamic_alpha_scheduler: dynamic4
-      max_dist_rp_lr: 0.5
+      max_dist_rp_lr: 0.2
       max_est_hessian_det_std: 0.05
       stable_ppo: False
 
@@ -110,6 +111,7 @@ params:
         actor_mlp:
           units: [64, 64]
           activation: elu
+        actor_logstd_init: 0.0
         fixed_sigma: False
 
         critic: CriticMLP
@@ -120,12 +122,12 @@ params:
       lr_schedule: linear # [constant, linear]
       
       # LEARNING RATE FOR RP-GRADIENT BASED ACTOR UPDATE;
-      actor_learning_rate_shac: 1e-2 # 4e-2
+      actor_learning_rate_shac: 1e-3 # 4e-2
       
       actor_learning_rate_alpha: 1e-5
       actor_iterations_alpha: 128
 
-      actor_learning_rate_basic: 1e-3
+      actor_learning_rate_basic: 1e-4
 
       # LEARNING RATE FOR CRITIC UPDATE;
       critic_learning_rate: 1e-3
