@@ -109,14 +109,14 @@ params:
       network:
         actor: GradActorStochasticMLP # ActorDeterministicMLP
         actor_mlp:
-          units: [64, 64]
+          units: [32, 32]
           activation: elu
         actor_logstd_init: 0.0
         fixed_sigma: False
 
         critic: CriticMLP
         critic_mlp:
-          units: [64, 64]
+          units: [32, 32]
           activation: elu
 
       lr_schedule: linear # [constant, linear]

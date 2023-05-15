@@ -183,7 +183,7 @@ class GradA2CAgent(A2CAgent):
 
         # set learning rate;
         if self.gi_lr_schedule == 'linear':
-            if self.gi_algorithm in ['shac-only', 'grad-ppo-shac']:
+            if self.gi_algorithm in ['shac-only', 'grad-ppo-shac', 'basic-lr', 'basic-rp', 'basic-combination']:
                 actor_lr = (1e-5 - self.actor_lr) * float(self.epoch_num / self.max_epochs) + self.actor_lr
             else:
                 actor_lr = self.actor_lr

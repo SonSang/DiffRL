@@ -109,14 +109,14 @@ params:
       network:
         actor: GradActorStochasticMLP # ActorDeterministicMLP
         actor_mlp:
-          units: [64, 64]
+          units: [32, 32]
           activation: elu
         actor_logstd_init: 0.0
         fixed_sigma: False
 
         critic: CriticMLP
         critic_mlp:
-          units: [64, 64]
+          units: [32, 32]
           activation: elu
 
       lr_schedule: linear # [constant, linear]
@@ -127,7 +127,7 @@ params:
       actor_learning_rate_alpha: 1e-5
       actor_iterations_alpha: 128
 
-      actor_learning_rate_basic: 3e-4
+      actor_learning_rate_basic: 1e-3
 
       # LEARNING RATE FOR CRITIC UPDATE;
       critic_learning_rate: 1e-3

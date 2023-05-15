@@ -57,7 +57,7 @@ params:
     lr_threshold: 0.008
     kl_threshold: 0.008
     score_to_win: 20000
-    max_epochs: 500
+    max_epochs: 2000
     save_best_after: 50
     save_frequency: 100
     grad_norm: 1.0
@@ -108,14 +108,14 @@ params:
       network:
         actor: GradActorStochasticMLP # ActorDeterministicMLP
         actor_mlp:
-          units: [64, 64]
+          units: [32, 32]
           activation: elu
         actor_logstd_init: 0.0
         fixed_sigma: False
 
         critic: CriticMLP
         critic_mlp:
-          units: [64, 64]
+          units: [32, 32]
           activation: elu
 
       lr_schedule: linear # [constant, linear]
