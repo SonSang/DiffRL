@@ -1,4 +1,4 @@
-NUM_TRIALS=20
+NUM_TRIALS=10
 NUM_EPOCHS=500
 
 # dejong
@@ -14,7 +14,7 @@ python optimize_hparams_gippo.py --env cartpole_swing_up --num_trial ${NUM_TRIAL
 python optimize_hparams_gippo.py --env ant --num_trial ${NUM_TRIALS} --num_epoch 1000 #${NUM_EPOCHS} # --rl_device cpu
 
 # hopper
-python optimize_hparams_dalpha.py --env hopper --num_trial ${NUM_TRIALS} --num_epoch 1000 #${NUM_EPOCHS} # --rl_device cpu
+python optimize_hparams_gippo.py --env hopper --num_trial ${NUM_TRIALS} --num_epoch 1000 #${NUM_EPOCHS} # --rl_device cpu
 
 # cheetah
 # python optimize_hparams_dalpha.py --env cheetah --num_trial ${NUM_TRIALS} --num_epoch ${NUM_EPOCHS}  --rl_device cpu
