@@ -1,0 +1,130 @@
+params:
+  algo:
+    name: grad_a2c_continuous_alpha
+  config:
+    bounds_loss_coef: 0.0001
+    clip_value: true
+    critic_coef: 4
+    defer_summaries_sec: 0.001
+    device: cpu
+    e_clip: 0.2
+    entropy_coef: 0.0
+    env_name: dflex
+    gamma: 0.99
+    gi_params:
+      actor_iterations_alpha: 16
+      actor_learning_rate_alpha: 1e-3
+      actor_learning_rate_shac: 1e-2
+      algorithm: grad-ppo-alpha
+      betas:
+      - 0.7
+      - 0.95
+      critic_iterations: 16
+      critic_learning_rate: 1e-3
+      critic_num_batch: 4
+      desired_alpha: 1e-5
+      dynamic_alpha_scheduler: dynamic4
+      lr_schedule: linear
+      max_alpha: 1e-0
+      max_dist_rp_lr: 0.5
+      max_est_hessian_det_std: 0.05
+      network:
+        actor: GradActorStochasticMLP
+        actor_logstd_init: 0.0
+        actor_mlp:
+          activation: elu
+          units:
+          - 32
+          - 32
+        critic: CriticMLP
+        critic_mlp:
+          activation: elu
+          units:
+          - 32
+          - 32
+        fixed_sigma: false
+      num_step: 1
+      seed: 2
+      stable_ppo: true
+      target_critic_alpha: 0.2
+      update_factor: 1.1
+      update_interval: 0.4
+    grad_norm: 1.0
+    kl_threshold: 0.008
+    learning_rate: 1e-2
+    lr_schedule: constant
+    lr_threshold: 0.008
+    max_epochs: 2000
+    mini_epochs: 5
+    minibatch_size: 64
+    mixed_precision: false
+    multi_gpu: false
+    name: df_ackley64
+    normalize_advantage: true
+    normalize_input: true
+    normalize_value: true
+    num_actors: 64
+    player:
+      determenistic: true
+      games_num: 12
+      num_actors: 4
+      print_stats: true
+    ppo: true
+    reward_shaper:
+      scale_value: 0.01
+    save_best_after: 50
+    save_frequency: 100
+    score_to_win: 20000
+    seq_len: 4
+    steps_num: 1
+    summaries_interval_sec_max: 0.002
+    summaries_interval_sec_min: 0.001
+    tau: 0.95
+    truncate_grads: true
+  diff_env:
+    MM_caching_frequency: 1
+    episode_length: 1
+    name: AckleyEnv64
+    stochastic_env: false
+  general:
+    cfg: ./neurips2023_outputs/function_optimization/cfg/gippo/_ackley64.yaml
+    checkpoint: Base
+    logdir: ./neurips2023_outputs/function_optimization/logs/ackley64/gippo/05-14-2023-21-36-47
+    no_time_stamp: false
+    num_envs: 0
+    play: false
+    ppo_kl_threshold: 0.008
+    ppo_lr_threshold: 0.008
+    render: false
+    rl_device: cpu
+    seed: 2
+    test: false
+    train: true
+  load_checkpoint: false
+  load_path: nn/df_ackley64.pth
+  model:
+    name: continuous_a2c_logstd
+  network:
+    mlp:
+      activation: elu
+      d2rl: false
+      initializer:
+        name: default
+      regularizer:
+        name: None
+      units:
+      - 64
+      - 64
+    name: actor_critic
+    separate: false
+    space:
+      continuous:
+        fixed_sigma: true
+        mu_activation: None
+        mu_init:
+          name: default
+        sigma_activation: None
+        sigma_init:
+          name: const_initializer
+          val: 0
+  seed: 2

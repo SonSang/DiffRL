@@ -21,7 +21,6 @@ do
     python ./examples/train_rl.py --cfg ./neurips2023_outputs/function_optimization/cfg/gippo/_dejong.yaml --logdir ./neurips2023_outputs/function_optimization/logs/dejong/gippo --seed ${i} --rl_device cpu
 done
 
-
 for (( i=1; i<=${ITER}; i++ ))
 do
     python ./examples/train_rl.py --cfg ./neurips2023_outputs/function_optimization/cfg/ppo/_dejong64.yaml --logdir ./neurips2023_outputs/function_optimization/logs/dejong64/ppo --seed ${i} --rl_device cpu
