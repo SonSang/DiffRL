@@ -1051,6 +1051,10 @@ class GradA2CAgent(A2CAgent):
 
                 self.actor_optimizer.step()
                 
+        elif self.gi_algorithm in ['ppo-only']:
+            
+            pass
+        
         else:
             
             raise ValueError()
