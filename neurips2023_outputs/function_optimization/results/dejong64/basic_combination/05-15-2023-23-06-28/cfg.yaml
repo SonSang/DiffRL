@@ -16,7 +16,7 @@ params:
       actor_learning_rate_alpha: 1e-2
       actor_learning_rate_basic: 1e-3
       actor_learning_rate_shac: 4e-2
-      algorithm: basic-lr
+      algorithm: basic-combination
       betas:
       - 0.7
       - 0.95
@@ -90,7 +90,7 @@ params:
   general:
     cfg: ./neurips2023_outputs/function_optimization/cfg/basic_combination/_dejong64.yaml
     checkpoint: Base
-    logdir: ./neurips2023_outputs/function_optimization/logs/dejong64/basic_combination/05-15-2023-03-00-30
+    logdir: ./neurips2023_outputs/function_optimization/logs/dejong64/basic_combination/05-15-2023-23-06-28
     no_time_stamp: false
     num_envs: 0
     play: false
