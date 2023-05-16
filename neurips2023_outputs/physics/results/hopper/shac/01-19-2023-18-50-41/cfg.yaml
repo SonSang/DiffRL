@@ -1,0 +1,60 @@
+params:
+  config:
+    actor_learning_rate: 2e-3
+    betas:
+    - 0.7
+    - 0.95
+    critic_iterations: 16
+    critic_learning_rate: 2e-4
+    critic_method: td-lambda
+    gamma: 0.99
+    grad_norm: 1.0
+    lambda: 0.95
+    lr_schedule: linear
+    max_epochs: 2000
+    name: df_hopper_shac
+    num_actors: 256
+    num_batch: 4
+    obs_rms: true
+    player:
+      determenistic: false
+      games_num: 1
+      num_actors: 1
+      print_stats: true
+    ret_rms: false
+    save_interval: 400
+    steps_num: 32
+    target_critic_alpha: 0.2
+    truncate_grads: true
+  diff_env:
+    MM_caching_frequency: 16
+    episode_length: 1000
+    name: HopperEnv
+    stochastic_env: true
+  general:
+    cfg: ./examples/cfg/shac/hopper.yaml
+    checkpoint: Base
+    device: !!python/object/apply:torch.device
+    - cuda
+    - 0
+    logdir: ./examples/logs/hopper/shac/01-19-2023-18-50-41
+    no_time_stamp: false
+    play: false
+    render: false
+    seed: 1
+    test: false
+    train: true
+  network:
+    actor: ActorStochasticMLP
+    actor_mlp:
+      activation: elu
+      units:
+      - 128
+      - 64
+      - 32
+    critic: CriticMLP
+    critic_mlp:
+      activation: elu
+      units:
+      - 64
+      - 64
