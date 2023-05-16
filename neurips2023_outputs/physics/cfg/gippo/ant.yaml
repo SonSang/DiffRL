@@ -39,7 +39,7 @@ params:
   load_path: nn/df_ant.pth
 
   config:
-    device: cpu
+    #device: cpu
     name: df_ant_gradppo
     env_name: dflex
     multi_gpu: False

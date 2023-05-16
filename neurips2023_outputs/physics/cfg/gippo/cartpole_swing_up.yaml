@@ -39,7 +39,7 @@ params:
   load_path: nn/df_cartpole_swing_up.pth
 
   config:
-    device: cpu
+    #device: cpu
     name: df_cartpole_swing_up_gradppo
     env_name: dflex
     multi_gpu: False

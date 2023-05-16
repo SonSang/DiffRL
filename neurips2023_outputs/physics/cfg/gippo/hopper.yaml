@@ -39,7 +39,7 @@ params:
   load_path: nn/df_hopper.pth
 
   config:
-    device: cpu
+    #device: cpu
     name: df_hopper_gradppo
     env_name: dflex
     multi_gpu: False
