@@ -1,0 +1,60 @@
+params:
+  config:
+    actor_learning_rate: 1e-3
+    betas:
+    - 0.7
+    - 0.95
+    critic_iterations: 16
+    critic_learning_rate: 1e-3
+    critic_method: td-lambda
+    gamma: 0.99
+    grad_norm: 1.0
+    lambda: 0.95
+    lr_schedule: linear
+    max_epochs: 500
+    name: df_traffic_pace_car_shac
+    num_actors: 64
+    num_batch: 4
+    obs_rms: true
+    player:
+      determenistic: true
+      games_num: 1
+      num_actors: 1
+      print_stats: true
+    ret_rms: false
+    save_interval: 400
+    steps_num: 32
+    target_critic_alpha: 0.2
+    truncate_grads: true
+  diff_env:
+    MM_caching_frequency: 16
+    episode_length: 1000
+    name: TrafficSinglePaceCarEnv_A
+    stochastic_env: true
+  general:
+    cfg: ./examples/cfg/shac/traffic_single_pace_car/scenario_a.yaml
+    checkpoint: Base
+    device: !!python/object/apply:torch.device
+    - cpu
+    logdir: ./examples/logs/traffic_single_pace_car/scenario_a/shac/01-31-2023-09-23-55
+    no_time_stamp: false
+    play: false
+    render: false
+    seed: 3
+    test: false
+    train: true
+  network:
+    actor: ActorStochasticMLP
+    actor_logstd_init: 0.0
+    actor_mlp:
+      activation: elu
+      units:
+      - 512
+      - 64
+      - 64
+    critic: CriticMLP
+    critic_mlp:
+      activation: elu
+      units:
+      - 64
+      - 64
