@@ -170,7 +170,7 @@ with sns.axes_style("darkgrid"):
     plt.xlabel("Step")
     plt.ylabel("Reward")
     
-    plt.ylim(top=0.1, bottom=-10.0)
+    plt.ylim(top=1.0, bottom=-10.0)
 
     plt.legend()
 
