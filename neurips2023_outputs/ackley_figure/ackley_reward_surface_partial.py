@@ -43,7 +43,7 @@ def ackley(x: th.Tensor):
 min_mean = -0.1
 max_mean = 0.1
 min_var = 0.
-max_var = 0.04
+max_var = 0.02
 
 res = 100
 n_sample = 40000
@@ -80,13 +80,13 @@ data = [reward_surface]
 
 # trajectories;
 
-traj_files = ['./neurips2023_outputs/ackley_figure/training_logs/gippo/05-12-2023-01-59-20/distrib_0.txt',
-                './neurips2023_outputs/ackley_figure/training_logs/gishac/05-12-2023-01-52-37/distrib_0.txt',
+traj_files = ['./neurips2023_outputs/ackley_figure/training_logs/ppo/05-12-2023-01-40-10/distrib_0.txt',
+                './neurips2023_outputs/ackley_figure/training_logs/gippo/05-12-2023-01-59-20/distrib_0.txt',
                 './neurips2023_outputs/ackley_figure/training_logs/gippo/05-12-2023-01-59-20/distrib_1.txt',
-                './neurips2023_outputs/ackley_figure/training_logs/gishac/05-12-2023-01-52-37/distrib_1.txt',
+                #'./neurips2023_outputs/ackley_figure/training_logs/gishac/05-12-2023-01-52-37/distrib_1.txt',
                 ]
 
-colors = ['blue', 'green', "turquoise", "lime"]
+colors = ['green', 'blue', "turquoise", "lime"]
 
 for ti, traj_file in enumerate(traj_files):
 
@@ -140,15 +140,16 @@ for ti, traj_file in enumerate(traj_files):
             if i > 38:
                 break
     
-    mode = "markers" if ti > 1 else "markers+lines"
+    mode = "markers" if ti == 2 else "markers+lines"
     size = 9 if ti > 1 else 12
     if ti == 0:
-        name = "GI-PPO"
+        name = "PPO"
     elif ti == 1:
-        name = "RP+PPO"
+        name = "GI-PPO"
     elif ti == 2:
-        name = "RP Update (GI-PPO)"
+        name = "GI-PPO (alpha)"
     else:
+        continue
         name = "RP Update (RP+PPO)"
     
     trajectory = go.Scatter3d(x=mean_list, 
