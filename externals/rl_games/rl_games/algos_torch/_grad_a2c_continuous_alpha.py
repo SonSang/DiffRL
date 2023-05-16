@@ -155,6 +155,7 @@ class GradA2CAgent(A2CAgent):
         self.est_curr_performace_rms = RunningMeanStd(shape=(1,), device=self.ppo_device)
         
         self.basic_combination_sample_num = 16
+        self.basic_combination_max_grad_length = 512
 
 
     def init_tensors(self):
@@ -979,6 +980,8 @@ class GradA2CAgent(A2CAgent):
                         for param in self.actor_optimizer.param_groups[0]['params']:
                             grad_list.append(param.grad.reshape([-1]))
                         grad = torch.cat(grad_list)
+                        if len(grad) > self.basic_combination_max_grad_length:
+                            grad = grad[:self.basic_combination_max_grad_length]
                         lr_gradients.append(grad)
                         
                     lr_gradients = torch.stack(lr_gradients, dim=0)
@@ -1013,6 +1016,8 @@ class GradA2CAgent(A2CAgent):
                             for param in self.actor_optimizer.param_groups[0]['params']:
                                 grad_list.append(param.grad.reshape([-1]))
                             grad = torch.cat(grad_list)
+                            if len(grad) > self.basic_combination_max_grad_length:
+                                grad = grad[:self.basic_combination_max_grad_length]
                             rp_gradients.append(grad)
                             
                             if len(rp_gradients) >= self.basic_combination_sample_num:
