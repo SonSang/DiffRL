@@ -297,7 +297,11 @@ class GradA2CAgent(A2CAgent):
                         raise NotImplementedError()
                     kls.append(av_kls)
                     
-                if self.stable_ppo and a_losses[-1] > a_losses[0]:
+                a_loss_0 = torch.stack(a_losses[:len(self.dataset)])
+                a_loss_1 = torch.stack(a_losses[-len(self.dataset):])
+                a_loss_0 = torch.mean(a_loss_0)
+                a_loss_1 = torch.mean(a_loss_1)
+                if self.stable_ppo and a_loss_1 > a_loss_0:
                     
                     with torch.no_grad():
                         

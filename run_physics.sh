@@ -1,20 +1,20 @@
 ITER=5
 
 # gippo
-# for (( i=2; i<=${ITER}; i++ ))
-# do
-#     python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/gippo/cartpole_swing_up.yaml --logdir ./neurips2023_outputs/physics/results/cartpole/gippo --seed ${i}
-#     python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/gippo/ant.yaml --logdir ./neurips2023_outputs/physics/results/ant/gippo --seed ${i}
-#     python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/gippo/hopper.yaml --logdir ./neurips2023_outputs/physics/results/hopper/gippo --seed ${i}
-# done
+for (( i=1; i<=${ITER}; i++ ))
+do
+    #python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/gippo/cartpole_swing_up.yaml --logdir ./neurips2023_outputs/physics/results/cartpole/gippo --seed ${i}
+    #python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/gippo/ant.yaml --logdir ./neurips2023_outputs/physics/results/ant/gippo --seed ${i}
+    python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/gippo/hopper.yaml --logdir ./neurips2023_outputs/physics/results/hopper/gippo --seed ${i}
+done
 
 # basic lr
-for (( i=2; i<=${ITER}; i++ ))
-do
-    python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/basic_lr/cartpole_swing_up.yaml --logdir ./neurips2023_outputs/physics/results/cartpole/basic_lr --seed ${i}
-    python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/basic_lr/ant.yaml --logdir ./neurips2023_outputs/physics/results/ant/basic_lr --seed ${i}
-    python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/basic_lr/hopper.yaml --logdir ./neurips2023_outputs/physics/results/hopper/basic_lr --seed ${i}
-done
+# for (( i=1; i<=${ITER}; i++ ))
+# do
+#     python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/basic_lr/cartpole_swing_up.yaml --logdir ./neurips2023_outputs/physics/results/cartpole/basic_lr --seed ${i}
+#     python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/basic_lr/ant.yaml --logdir ./neurips2023_outputs/physics/results/ant/basic_lr --seed ${i}
+#     python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/basic_lr/hopper.yaml --logdir ./neurips2023_outputs/physics/results/hopper/basic_lr --seed ${i}
+# done
 
 # shac
 # for (( i=1; i<=${ITER}; i++ ))
@@ -25,12 +25,12 @@ done
 # done
 
 # ppo
-for (( i=2; i<=${ITER}; i++ ))
-do
-    python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/ppo/cartpole_swing_up.yaml --logdir ./neurips2023_outputs/physics/results/cartpole/ppo --seed ${i}
-    python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/ppo/ant.yaml --logdir ./neurips2023_outputs/physics/results/ant/ppo --seed ${i}
-    python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/ppo/hopper.yaml --logdir ./neurips2023_outputs/physics/results/hopper/ppo --seed ${i}
-done
+# for (( i=4; i<=${ITER}; i++ ))
+# do
+#     python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/ppo/cartpole_swing_up.yaml --logdir ./neurips2023_outputs/physics/results/cartpole/ppo --seed ${i}
+#     python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/ppo/ant.yaml --logdir ./neurips2023_outputs/physics/results/ant/ppo --seed ${i}
+#     # python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/ppo/hopper.yaml --logdir ./neurips2023_outputs/physics/results/hopper/ppo --seed ${i}
+# done
 
 # # ant
 # for (( i=0; i<${ITER}; i++ ))

@@ -39,7 +39,7 @@ params:
   load_path: nn/df_ant.pth
 
   config:
-    device: cpu
+    #device: cpu
     name: df_ant_gradppo
     env_name: dflex
     multi_gpu: False
@@ -52,8 +52,8 @@ params:
     normalize_advantage: True
     gamma: 0.99
     tau: 0.95
-    learning_rate: 3e-4
-    lr_schedule: adaptive
+    learning_rate: 1e-4
+    lr_schedule: constant
     lr_threshold: 0.008
     kl_threshold: 0.008
     score_to_win: 20000
@@ -94,13 +94,13 @@ params:
       algorithm: 'grad-ppo-alpha'
 
       max_alpha: 1e0
-      desired_alpha: 2e-1
-      update_factor: 1.1
-      update_interval: 0.20
+      desired_alpha: 5e-1
+      update_factor: 1.02
+      update_interval: 0.40
       dynamic_alpha_scheduler: dynamic4
       max_dist_rp_lr: 0.5
       max_est_hessian_det_std: 0.05
-      stable_ppo: True
+      stable_ppo: False
 
       # THESE ARE THE REAL NETWORKS WE ARE GOING TO USE;
       network:
@@ -120,7 +120,7 @@ params:
       # LEARNING RATE FOR RP-GRADIENT BASED ACTOR UPDATE;
       actor_learning_rate_shac: 2e-3 # 4e-2
       
-      actor_learning_rate_alpha: 5e-3
+      actor_learning_rate_alpha: 5e-4
       actor_iterations_alpha: 16
 
       # LEARNING RATE FOR CRITIC UPDATE;
