@@ -28,7 +28,7 @@ import torch
 
 from utils.common import *
 
-device = 'cuda:0'
+device = 'cpu'
 
 def create_dflex_env(**kwargs):
     env_fn = getattr(envs, cfg_train["params"]["diff_env"]["name"])
