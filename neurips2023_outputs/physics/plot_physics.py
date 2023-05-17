@@ -43,13 +43,13 @@ gippo_path = run_path + "/gippo"
 ppo_path = run_path + "/ppo"
 basic_lr_path = run_path + "/basic_lr"
 basic_rp_path = run_path + "/shac"
-# basic_combination = run_path + "/basic_combination"
+pe = run_path + "/pe"
 
 mpath = {'gippo': gippo_path, 
         'ppo': ppo_path,
         'basic_lr': basic_lr_path, 
-        'basic_rp': basic_rp_path, }
-        # 'basic_combination': basic_combination}
+        'basic_rp': basic_rp_path,
+        'pe': pe}
 
 steps = {}
 rewards = {}
@@ -65,7 +65,7 @@ for method in mpath.keys():
     rewards[method] = {}
 
     for dir in dirs:
-        if method == 'basic_rp':
+        if method == 'basic_rp' or method == 'pe':
             fpath = mcpath + "/{}/".format(dir)
         else:
             fpath = mcpath + "/{}/runs".format(dir)
@@ -164,11 +164,11 @@ with sns.axes_style("darkgrid"):
     plt.plot(n_timesteps, mean_rewards, c = clrs[1], label="PPO", linewidth=5)
     plt.fill_between(n_timesteps, mean_rewards - std_rewards, mean_rewards + std_rewards, alpha=0.3, facecolor = clrs[1])
 
-    # n_timesteps = final_steps['basic_combination']
-    # mean_rewards = final_rewards_mean['basic_combination']
-    # std_rewards = final_rewards_std['basic_combination']
-    # plt.plot(n_timesteps, mean_rewards, c = clrs[4], label="LR+RP", linewidth=5)
-    # plt.fill_between(n_timesteps, mean_rewards - std_rewards, mean_rewards + std_rewards, alpha=0.3, facecolor = clrs[4])
+    n_timesteps = final_steps['pe']
+    mean_rewards = final_rewards_mean['pe']
+    std_rewards = final_rewards_std['pe']
+    plt.plot(n_timesteps, mean_rewards, c = clrs[4], label="PE", linewidth=5)
+    plt.fill_between(n_timesteps, mean_rewards - std_rewards, mean_rewards + std_rewards, alpha=0.3, facecolor = clrs[4])
 
     n_timesteps = final_steps['gippo']
     mean_rewards = final_rewards_mean['gippo']
