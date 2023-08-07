@@ -4,8 +4,8 @@ ITER=5
 for (( i=1; i<=${ITER}; i++ ))
 do
     #python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg/gippo/cartpole_swing_up.yaml --logdir ./neurips2023_outputs/physics/results/cartpole/gippo --seed ${i}
-    #python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg_rebuttal/gippo/ant.yaml --logdir ./neurips2023_outputs/physics/rebuttal/ant/gippo --seed ${i}
-    python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg_rebuttal/gippo/hopper.yaml --logdir ./neurips2023_outputs/physics/rebuttal/hopper/gippo --seed ${i}
+    python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg_rebuttal/gippo/ant.yaml --logdir ./neurips2023_outputs/physics/rebuttal/ant/gippo --seed ${i}
+    #CUDA_VISIBLE_DEVICES=3 python ./examples/train_rl.py --cfg ./neurips2023_outputs/physics/cfg_rebuttal/gippo/hopper.yaml --logdir ./neurips2023_outputs/physics/rebuttal/hopper/gippo --seed ${i}
 done
 
 # basic lr

@@ -272,6 +272,7 @@ class GradA2CAgent(A2CAgent):
 
                     ep_kls = []
                     for i in range(len(self.dataset)):
+                        # print(f"Iter {i}")
                         a_loss, c_loss, entropy, kl, last_lr, lr_mul, cmu, csigma, b_loss = self.train_actor_critic(self.dataset[i])
                         a_losses.append(a_loss)
                         c_losses.append(c_loss)
@@ -630,6 +631,10 @@ class GradA2CAgent(A2CAgent):
                                                                 curr_grad_advs,
                                                                 grad_start,
                                                                 False)
+
+            # if torch.any(torch.isnan(t_adv_gradient)) or torch.any(torch.isinf(t_adv_gradient)):
+            #     print("invalid gradient...")
+            #     exit(-1)
             
             with torch.no_grad():
             
@@ -715,6 +720,24 @@ class GradA2CAgent(A2CAgent):
                         param['lr'] = self.actor_lr
                         
                     break
+
+                # # check if actor is valid;
+                # valid_actor = True
+                # with torch.no_grad():
+                #     for param in self.actor.parameters():
+                #         if torch.any(torch.isnan(param.data)) or torch.any(torch.isinf(param.data)):
+                #             valid_actor = False
+                #             break
+                
+                # if not valid_actor:
+                #     for param, param_targ in zip(self.backup_actor.parameters(), self.actor.parameters()):
+                #         param_targ.data.mul_(0.)
+                #         param_targ.data.add_(param.data)
+                #     actor_loss_1 = actor_loss_0
+                #     log_actor_loss_1 = log_actor_loss_0
+                #     actor_loss_ratio = 1.
+                #     print("Not valid actor!")
+                #     exit(-1)
                 
             self.writer.add_scalar("info_alpha/actor_loss_ratio", actor_loss_ratio, self.epoch_num)
                 
@@ -1365,6 +1388,11 @@ class GradA2CAgent(A2CAgent):
 
         if self.is_rnn:
             raise NotImplementedError()
+        
+        for param in self.actor.parameters():
+            if torch.any(torch.isnan(param.data)) or torch.any(torch.isinf(param.data)):
+                print("Invalid param 1")
+                exit(-1)
             
         # get current policy's actions;
         curr_mu, curr_std = self.actor.forward_dist(obs_batch)
@@ -1372,6 +1400,29 @@ class GradA2CAgent(A2CAgent):
             curr_std = curr_std.unsqueeze(0)                      
             curr_std = curr_std.expand(curr_mu.shape[0], -1).clone()
         neglogp = self.neglogp(actions_batch, curr_mu, curr_std, torch.log(curr_std))
+            
+        # min_std = float(1e-5)
+        # tmp_curr_std = curr_std
+        # while True:
+        #     neglogp = self.neglogp(actions_batch, curr_mu, tmp_curr_std, torch.log(tmp_curr_std))
+        #     if torch.any(torch.isnan(neglogp)) or torch.any(torch.isinf(neglogp)):
+                
+        #         # isnan_ind = torch.isnan(neglogp)
+        #         # isinf_ind = torch.isinf(neglogp)
+        #         # # print(actions_batch[isnan_ind])
+        #         # # print(curr_mu[isnan_ind])
+        #         # # print(tmp_curr_std[isnan_ind])
+
+        #         # # print(actions_batch[isinf_ind])
+        #         # # print(curr_mu[isinf_ind])
+        #         # # print(tmp_curr_std[isinf_ind])
+                
+        #         print(min_std)
+        #         tmp_curr_std = torch.clamp(curr_std, min=min_std)
+        #         min_std *= 2.
+        #         exit(-1)
+        #     else:
+        #         break
 
         if self.gi_algorithm == "grad-ppo-alpha":
             a_loss = _grad_common_losses.actor_loss_alpha(old_action_log_probs_batch_0, 
@@ -1418,6 +1469,21 @@ class GradA2CAgent(A2CAgent):
                 self.ppo_optimizer.step()
         else:
             self.ppo_optimizer.step()
+
+        for param in self.actor.parameters():
+            if torch.any(torch.isnan(param.data)) or torch.any(torch.isinf(param.data)):
+
+                print("Invalid param 2")
+                print(loss)
+                print(a_loss)
+                
+                # print(_grad_common_losses.actor_loss_alpha(old_action_log_probs_batch_0, 
+                #                                             old_action_log_probs_batch_1,
+                #                                             neglogp, 
+                #                                             advantage, 
+                #                                             self.ppo, 
+                #                                             curr_e_clip))
+                exit(-1)
 
         with torch.no_grad():
             reduce_kl = not self.is_rnn

@@ -39,7 +39,7 @@ params:
   load_path: nn/df_ant.pth
 
   config:
-    device: cpu
+    # device: cpu
     name: df_ant_gradppo
     env_name: dflex
     multi_gpu: False
@@ -94,7 +94,7 @@ params:
       algorithm: 'grad-ppo-alpha'
 
       max_alpha: 1e0
-      desired_alpha: 1e-1
+      desired_alpha: 5e-1
       update_factor: 1.02
       update_interval: 0.40
       dynamic_alpha_scheduler: dynamic4

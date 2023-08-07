@@ -6,7 +6,6 @@ params:
     clip_value: true
     critic_coef: 4
     defer_summaries_sec: 0.001
-    device: cpu
     e_clip: 0.2
     entropy_coef: 0.0
     env_name: dflex
@@ -22,7 +21,7 @@ params:
       critic_iterations: 16
       critic_learning_rate: 2e-3
       critic_num_batch: 4
-      desired_alpha: 1e-1
+      desired_alpha: 5e-1
       dynamic_alpha_scheduler: dynamic4
       lr_schedule: linear
       max_alpha: 1e0
@@ -87,9 +86,9 @@ params:
     name: AntEnv
     stochastic_env: true
   general:
-    cfg: ./neurips2023_outputs/physics/cfg_rebuttal2/gippo/ant.yaml
+    cfg: ./neurips2023_outputs/physics/cfg_rebuttal/gippo/ant.yaml
     checkpoint: Base
-    logdir: ./neurips2023_outputs/physics/rebuttal2/ant/gippo/08-05-2023-16-40-37
+    logdir: ./neurips2023_outputs/physics/rebuttal/ant/gippo/08-07-2023-19-34-11
     no_time_stamp: false
     num_envs: 0
     play: false

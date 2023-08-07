@@ -153,8 +153,18 @@ def  actor_loss_alpha(old_action_log_probs_batch0,
             
             ratio = action_log_probs_batch_mid - action_log_probs
             
-        ratio = torch.clamp(ratio, min=-64., max=64.)        # prevent ratio becoming [inf];
+        ratio = torch.clamp(ratio, min=-16., max=16.)        # prevent ratio becoming [inf];
         ratio = torch.exp(ratio)
+
+        # if torch.any(torch.isnan(ratio)) or torch.any(torch.isinf(ratio)):
+        #     print("Ratio is NAN or INF")
+        #     route0 = torch.any(torch.abs(t_ratio) > 4.)
+        #     print(f"Route0: {route0}")
+        #     print(torch.any(torch.isnan(old_action_log_probs_batch1)) or torch.any(torch.isinf(old_action_log_probs_batch1)))
+        #     print(torch.any(torch.isnan(old_action_log_probs_batch0)) or torch.any(torch.isinf(old_action_log_probs_batch0)))
+        #     print(torch.any(torch.isnan(action_log_probs)) or torch.any(torch.isinf(action_log_probs)))
+        #     print(torch.any(torch.isnan(t_ratio)) or torch.any(torch.isinf(t_ratio)))
+        #     exit(-1)
 
         surr1 = advantage * ratio
         surr2 = advantage * torch.clamp(ratio, 1.0 - curr_e_clip,
